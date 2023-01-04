@@ -33,7 +33,7 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, ub=None, lb=None, nois
     # Keeping the 2D data for the solution data (real() is maybe to make it float by default, in case of zeroes)
     Exact_u = np.real(data['usol']).T # T x N
 
-    if N_n != None and q != None and ub != None and lb != None and idx_t_0 != None and idx_t_1 != None:
+    if N_n != None and q != None and ub != None and lb != None and idx_t_0 != None and idx_t_1 != None: #{{{
       dt = t[idx_t_1] - t[idx_t_0]
       idx_x = np.random.choice(Exact_u.shape[1], N_n, replace=False) 
       x_0 = x[idx_x,:]
@@ -52,7 +52,7 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, ub=None, lb=None, nois
       IRK_weights = np.reshape(tmp[0:q**2+q], (q+1,q))
       IRK_times = tmp[q**2+q:]
 
-      return x, t, dt, Exact_u, x_0, u_0, x_1, x_star, u_star, IRK_weights, IRK_times
+      return x, t, dt, Exact_u, x_0, u_0, x_1, x_star, u_star, IRK_weights, IRK_times #}}}
 
     # Meshing x and t in 2D (256,100)
     X, T = np.meshgrid(x,t)
@@ -68,7 +68,7 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, ub=None, lb=None, nois
     X_u_train = X_star[idx,:]
     u_train = u_star[idx,:]
 
-    if N_0 != None and N_1 != None:
+    if N_0 != None and N_1 != None: #{{{
       Exact_u = Exact_u.T
       idx_x = np.random.choice(Exact_u.shape[0], N_0, replace=False)
       x_0 = x[idx_x,:]
@@ -88,12 +88,12 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, ub=None, lb=None, nois
       weights =  np.reshape(tmp[0:q**2+q], (q+1,q))     
       IRK_alpha = weights[0:-1,:]
       IRK_beta = weights[-1:,:] 
-      return x_0, u_0, x_1, u_1, x, t, dt, q, Exact_u, IRK_alpha, IRK_beta
+      return x_0, u_0, x_1, u_1, x, t, dt, q, Exact_u, IRK_alpha, IRK_beta #}}}
 
-    if N_f == None:
+    if N_f == None: #{{{
       lb = X_star.min(axis=0)
       ub = X_star.max(axis=0) 
-      return x, t, X, T, Exact_u, X_star, u_star, X_u_train, u_train, ub, lb
+      return x, t, X, T, Exact_u, X_star, u_star, X_u_train, u_train, ub, lb #}}}
 
     # Domain bounds (lowerbounds upperbounds) [x, t], which are here ([-1.0, 0.0] and [1.0, 1.0])
     lb = X_star.min(axis=0)

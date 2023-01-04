@@ -16,5 +16,6 @@ b = md.geometry.bed;
 vx = md.results.StressbalanceSolution.Vx;
 vy = md.results.StressbalanceSolution.Vy;
 C = md.friction.coefficient;
+DBC = md.mesh.vertexonboundary;
 
-save(['./DATA/SSA2D.mat'], 'x', 'y', 'H', 'b', 'vx', 'vy', 'C');
+save(['./DATA/SSA2D.mat'], 'x', 'y', 'H', 'b', 'vx', 'vy', 'C', 'DBC');
