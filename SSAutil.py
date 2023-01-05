@@ -33,7 +33,9 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, ub=None, lb=None): #{{
     X_star = np.hstack((x.flatten()[:,None], y.flatten()[:,None]))
 
     # Preparing the testing u_star and vy_star
-    u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None], Exact_H.flatten()[:,None], Exact_b.flatten()[:,None]))
+    #u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None], Exact_H.flatten()[:,None], Exact_b.flatten()[:,None]))
+
+    u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None])) #, Exact_H.flatten()[:,None], Exact_b.flatten()[:,None]))
 
     # Domain bounds: for regularization and generate training set
     lb = X_star.min(axis=0)
