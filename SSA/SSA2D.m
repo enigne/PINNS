@@ -5,6 +5,8 @@ md=setmask(md,'','');
 md=parameterize(md, './Par/SquareSheetConstrained.par');
 md=setflowequation(md,'SSA','all');
 % linear case first
+md.materials.rheology_n=ones(md.mesh.numberofelements,1);
+md.materials.rheology_B=1e15*ones(md.mesh.numberofvertices);
 md.friction.coefficient = zeros(md.mesh.numberofvertices, 1);
 md.friction.q = zeros(md.mesh.numberofelements,1);
 
@@ -22,3 +24,4 @@ C = md.friction.coefficient;
 DBC = md.mesh.vertexonboundary;
 
 save(['./DATA/SSA2D.mat'], 'x', 'y', 'H', 'b', 'vx', 'vy', 'C', 'DBC');
+plotmodel(md, 'data', md.results.StressbalanceSolution.Vel, 'data', md.geometry.thickness, 'data', vx, 'data', vy)

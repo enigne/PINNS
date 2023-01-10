@@ -24,23 +24,23 @@ hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 20
+hp["tf_epochs"] = 100
 hp["tf_lr"] = 0.1
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 20
+hp["nt_epochs"] = 2000
 hp["nt_lr"] = 1.2
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
 #}}}
 class SSAInformedNN(NeuralNetwork): #{{{
-    def __init__(self, hp, logger, X_f, ub, lb, eta, n=3.0):
-        super().__init__(hp, logger, ub, lb)
+    def __init__(self, hp, logger, X_f, xub, xlb, uub, ulb, eta, n=3.0):
+        super().__init__(hp, logger, xub, xlb, uub, ulb)
 
         # scaling factors
-        self.ub = ub
-        self.lb = lb
+        self.ub = xub
+        self.lb = xlb
 
         # viscosity
         self.eta = eta
@@ -53,6 +53,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         self.hmin = 300
         self.hmax = 1000
         self.C = 20
+        self.yts = 3600.0*24*365
 
         # Separating the collocation coordinates
         self.x_f = self.tensor(X_f[:, 0:1])
@@ -100,7 +101,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         # Using the new GradientTape paradigm of TF2.0,
         # which keeps track of operations to get the gradient at runtime
         with tf.GradientTape(persistent=True) as tape:
-            # Watching the two inputs we’ll need later, x and t
+            # Watching the two inputs we’ll need later, x and y
             tape.watch(self.x_f)
             tape.watch(self.y_f)
             # Packing together the inputs
@@ -116,7 +117,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
             # Getting the prediction
             u, v, u_x, v_x, u_y, v_y = self.uvx_model(X_f)
 
-            epsilon = 0.5*eta *(u_x**2 + v_y**2 + 0.25*(u_y+v_x)**2 + u_x*v_y+1e-30)**(0.5*(1.0-n)/n)
+            epsilon = 0.5*eta *(u_x**2 + v_y**2 + 0.25*(u_y+v_x)**2 + u_x*v_y+1.0e-30)**(0.5*(1.0-n)/n)
             # stress tensor
             etaH = epsilon * H
             B11 = etaH*(4*u_x + 2*v_y)
@@ -150,8 +151,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         f1_pred, f2_pred = self.f_model()
 
-        mse_u = tf.reduce_mean(tf.square(u0 - u0_pred))
-        mse_v = tf.reduce_mean(tf.square(v0 - v0_pred))
+        mse_u = (self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = (self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
         mse_f1 = tf.reduce_mean(tf.square(f1_pred)) 
         mse_f2 = tf.reduce_mean(tf.square(f2_pred)) 
 
@@ -170,16 +171,17 @@ class SSAInformedNN(NeuralNetwork): #{{{
 repoPath = "."
 appDataPath = os.path.join(repoPath, "SSA", "DATA")
 path = os.path.join(appDataPath, "SSA2D.mat")
-x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, ub, lb = prep_data(path, hp["N_0"], hp["N_f"])
+x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, xub, xlb, uub, ulb = prep_data(path, hp["N_0"], hp["N_f"])
 # Creating the model and training
 logger = Logger(hp)
-pinn = SSAInformedNN(hp, logger, X_f, ub, lb, eta=1.8157e8)
+#pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.8157e8)
+pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.0e15, n=1.0)
 
 # error function for logger
 def error():
     u_pred, v_pred = pinn.predict(X_star)
     return (np.linalg.norm(u_star[:,0:1] - u_pred, 2)+np.linalg.norm(u_star[:,1:2] - v_pred, 2)) / np.linalg.norm(u_star[:,0:2], 2)
 logger.set_error_fn(error)
-#pinn.fit(X_u_train, u_train, tf_epochs, nt_config)
 pinn.fit(X_star, u_star)
-
+#pinn.fit(X_u_train, u_train)
+u_pred, v_pred = pinn.predict(X_star)

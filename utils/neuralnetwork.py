@@ -5,7 +5,7 @@ from custom_lbfgs import lbfgs, Struct
 
 
 class NeuralNetwork(object):
-    def __init__(self, hp, logger, ub, lb):
+    def __init__(self, hp, logger, xub, xlb, uub, ulb):
 
         layers = hp["layers"]
 
@@ -25,16 +25,24 @@ class NeuralNetwork(object):
         # Descriptive Keras model
         tf.keras.backend.set_floatx(self.dtype)
         self.model = tf.keras.Sequential()
+        # input layer
         self.model.add(tf.keras.layers.InputLayer(input_shape=(layers[0],)))
+        # normalization layer
         self.model.add(tf.keras.layers.Lambda(
-            lambda X: 2.0*(X - lb)/(ub - lb) - 1.0))
+            lambda X: 2.0*(X - xlb)/(xub - xlb) - 1.0))
+        # NN layers
         for width in layers[1:-1]:
             self.model.add(tf.keras.layers.Dense(
                 width, activation=tf.nn.tanh,
                 kernel_initializer="glorot_normal"))
+        # output layer
         self.model.add(tf.keras.layers.Dense(
                 layers[-1], activation=None,
                 kernel_initializer="glorot_normal"))
+
+        # denormalization layer
+        self.model.add(tf.keras.layers.Lambda(
+            lambda X: ulb+0.5*(X+1.0)*(uub-ulb)))
 
         # Computing the sizes of weights/biases for future decomposition
         self.sizes_w = []
@@ -67,7 +75,7 @@ class NeuralNetwork(object):
 
     def get_weights(self, convert_to_tensor=True):
         w = []
-        for layer in self.model.layers[1:]:
+        for layer in self.model.layers[1:-1]:
             weights_biases = layer.get_weights()
             weights = weights_biases[0].flatten()
             biases = weights_biases[1]
@@ -78,7 +86,7 @@ class NeuralNetwork(object):
         return w
 
     def set_weights(self, w):
-        for i, layer in enumerate(self.model.layers[1:]):
+        for i, layer in enumerate(self.model.layers[1:-1]):
             start_weights = sum(self.sizes_w[:i]) + sum(self.sizes_b[:i])
             end_weights = sum(self.sizes_w[:i+1]) + sum(self.sizes_b[:i])
             weights = w[start_weights:end_weights]

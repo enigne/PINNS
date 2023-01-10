@@ -12,7 +12,7 @@ from scipy.interpolate import griddata
 repoPath = "."
 appDataPath = os.path.join(repoPath, "SSA", "DATA")
 
-def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, ub=None, lb=None): #{{{
+def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, xub=None, xlb=None, uub=None, ulb=None): #{{{
     # Reading SSA ref solutions: x, y-coordinates, usol and Hsol
     data = scipy.io.loadmat(path,  mat_dtype=True)
 
@@ -33,13 +33,13 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, ub=None, lb=None): #{{
     X_star = np.hstack((x.flatten()[:,None], y.flatten()[:,None]))
 
     # Preparing the testing u_star and vy_star
-    #u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None], Exact_H.flatten()[:,None], Exact_b.flatten()[:,None]))
-
     u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None])) #, Exact_H.flatten()[:,None], Exact_b.flatten()[:,None]))
 
     # Domain bounds: for regularization and generate training set
-    lb = X_star.min(axis=0)
-    ub = X_star.max(axis=0) 
+    xlb = X_star.min(axis=0)
+    xub = X_star.max(axis=0) 
+    ulb = u_star.min(axis=0)
+    uub = u_star.max(axis=0) 
     
     # set Dirichlet boundary conditions
     idbc = np.transpose(np.asarray(DBC>0).nonzero())
@@ -52,7 +52,7 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, ub=None, lb=None): #{{
 
     # Generating the x and t collocation points for f, with each having a N_f size
     # We pointwise add and multiply to spread the LHS over the 2D domain
-    X_f_train = lb + (ub-lb)*lhs(2, N_f)
+    X_f_train = xlb + (xub-xlb)*lhs(2, N_f)
 
     # Generating a uniform random sample from ints between 0, and the size of x_u_train, of size N_u (initial data size) and without replacement (unique)
     idx = np.random.choice(X_u_train.shape[0], N_u, replace=False)
@@ -61,4 +61,4 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, ub=None, lb=None): #{{
     # Getting the corresponding u_train
     u_train = u_train [idx,:]
 
-    return x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f_train, ub, lb  #}}}
+    return x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f_train, xub, xlb, uub, ulb  #}}}
