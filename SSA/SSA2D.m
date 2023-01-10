@@ -5,8 +5,6 @@ md=setmask(md,'','');
 md=parameterize(md, './Par/SquareSheetConstrained.par');
 md=setflowequation(md,'SSA','all');
 % linear case first
-md.materials.rheology_n=ones(md.mesh.numberofelements,1);
-md.materials.rheology_B=1e15*ones(md.mesh.numberofvertices);
 md.friction.coefficient = zeros(md.mesh.numberofvertices, 1);
 md.friction.q = zeros(md.mesh.numberofelements,1);
 

@@ -151,10 +151,10 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         f1_pred, f2_pred = self.f_model()
 
-        mse_u = (self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
-        mse_v = (self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
-        mse_f1 = tf.reduce_mean(tf.square(f1_pred)) 
-        mse_f2 = tf.reduce_mean(tf.square(f2_pred)) 
+        mse_u = (self.yts) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = (self.yts) * tf.reduce_mean(tf.square(v0 - v0_pred))
+        mse_f1 = 1e-10*tf.reduce_mean(tf.square(f1_pred)) 
+        mse_f2 = 1e-10*tf.reduce_mean(tf.square(f2_pred)) 
 
         tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mse_f1    {mse_f1}    mse_f2    {mse_f2}")
         return mse_u+mse_v+mse_f1+mse_f2
@@ -174,8 +174,9 @@ path = os.path.join(appDataPath, "SSA2D.mat")
 x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, xub, xlb, uub, ulb = prep_data(path, hp["N_0"], hp["N_f"])
 # Creating the model and training
 logger = Logger(hp)
-#pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.8157e8)
-pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.0e15, n=1.0)
+pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.8157e8)
+# Linear viscosity
+#pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.0e15, n=1.0)
 
 # error function for logger
 def error():
