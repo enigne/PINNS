@@ -24,7 +24,7 @@ hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 100
+hp["tf_epochs"] = 300
 hp["tf_lr"] = 0.1
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
@@ -151,10 +151,10 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         f1_pred, f2_pred = self.f_model()
 
-        mse_u = (self.yts) * tf.reduce_mean(tf.square(u0 - u0_pred))
-        mse_v = (self.yts) * tf.reduce_mean(tf.square(v0 - v0_pred))
-        mse_f1 = 1e-10*tf.reduce_mean(tf.square(f1_pred)) 
-        mse_f2 = 1e-10*tf.reduce_mean(tf.square(f2_pred)) 
+        mse_u = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
+        mse_f1 = 1e-8*tf.reduce_mean(tf.square(f1_pred)) 
+        mse_f2 = 1e-8*tf.reduce_mean(tf.square(f2_pred)) 
 
         tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mse_f1    {mse_f1}    mse_f2    {mse_f2}")
         return mse_u+mse_v+mse_f1+mse_f2
