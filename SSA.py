@@ -183,6 +183,6 @@ def error():
     u_pred, v_pred = pinn.predict(X_star)
     return (np.linalg.norm(u_star[:,0:1] - u_pred, 2)+np.linalg.norm(u_star[:,1:2] - v_pred, 2)) / np.linalg.norm(u_star[:,0:2], 2)
 logger.set_error_fn(error)
-pinn.fit(X_star, u_star)
-#pinn.fit(X_u_train, u_train)
+#pinn.fit(X_star, u_star)
+pinn.fit(X_u_train, u_train)
 u_pred, v_pred = pinn.predict(X_star)
