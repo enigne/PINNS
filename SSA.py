@@ -52,7 +52,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         self.g = 9.81    # m/s^2
         self.hmin = 300
         self.hmax = 1000
-        self.C = 20
+        self.C = 100
         self.yts = 3600.0*24*365
 
         # Separating the collocation coordinates
@@ -137,9 +137,11 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         # Letting the tape go
         del tape
+        u_norm = (u**2+v**2+1.0e-30)**0.5
+        alpha = self.C**2 * (u_norm)**(1.0/self.n - 1)
 
-        f1 = sigma11 + sigma12 - self.rhoi*self.g*H*h_x
-        f2 = sigma21 + sigma22 - self.rhoi*self.g*H*h_y
+        f1 = sigma11 + sigma12 - alpha*u - self.rhoi*self.g*H*h_x
+        f2 = sigma21 + sigma22 - alpha*v - self.rhoi*self.g*H*h_y
 
         return f1, f2
 

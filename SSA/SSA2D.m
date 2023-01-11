@@ -5,7 +5,8 @@ md=setmask(md,'','');
 md=parameterize(md, './Par/SquareSheetConstrained.par');
 md=setflowequation(md,'SSA','all');
 % linear case first
-md.friction.coefficient = zeros(md.mesh.numberofvertices, 1);
+md.friction.coefficient = 100*ones(md.mesh.numberofvertices, 1);
+md.friction.p = 3*ones(md.mesh.numberofelements,1);
 md.friction.q = zeros(md.mesh.numberofelements,1);
 
 %control parameters
