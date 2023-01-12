@@ -18,13 +18,13 @@ tf.random.set_seed(1234)
 # Hyper parameters {{{
 hp = {}
 # Data size on the solution u
-hp["N_0"] = 50
+hp["N_0"] = 500
 # Collocation points size, where we’ll check for f = 0
 hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 300
+hp["tf_epochs"] = 100
 hp["tf_lr"] = 0.1
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
@@ -35,12 +35,16 @@ hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
 #}}}
 class SSAInformedNN(NeuralNetwork): #{{{
-    def __init__(self, hp, logger, X_f, xub, xlb, uub, ulb, eta, n=3.0):
+    def __init__(self, hp, logger, X_f, X_bc, u_bc, xub, xlb, uub, ulb, eta, n=3.0):
         super().__init__(hp, logger, xub, xlb, uub, ulb)
 
         # scaling factors
         self.ub = xub
         self.lb = xlb
+
+        # Dirichlet B.C.
+        self.X_bc = self.tensor(X_bc)
+        self.u_bc = u_bc
 
         # viscosity
         self.eta = eta
@@ -53,7 +57,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         self.hmin = 300
         self.hmax = 1000
         #self.C = 100
-        self.C = tf.Variable([0.2], dtype=self.dtype)
+        self.C = tf.Variable([0.5], dtype=self.dtype)
 
         self.yts = 3600.0*24*365
 
@@ -149,20 +153,29 @@ class SSAInformedNN(NeuralNetwork): #{{{
         return f1, f2
 
     def loss(self, uv, uv_pred):
+        # obs
         u0 = uv[:, 0:1]
         v0 = uv[:, 1:2]
         u0_pred = uv_pred[:, 0:1]
         v0_pred = uv_pred[:, 1:2]
 
+        # residual of f
         f1_pred, f2_pred = self.f_model()
+
+        # B.C.
+        u_bc = self.u_bc[:,0:1]
+        v_bc = self.u_bc[:,1:2]
+        u_bc_pred, v_bc_pred, u_x_bc_pred, v_x_bc_pred, u_y_bc_pred, v_y_bc_pred = self.uvx_model(self.X_bc)
+        mse_u_bc = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u_bc - u_bc_pred))
+        mse_v_bc = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v_bc - v_bc_pred))
 
         mse_u = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
         mse_v = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
         mse_f1 = 1e-6*tf.reduce_mean(tf.square(f1_pred)) 
         mse_f2 = 1e-6*tf.reduce_mean(tf.square(f2_pred)) 
 
-        tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mse_f1    {mse_f1}    mse_f2    {mse_f2}")
-        return mse_u+mse_v+mse_f1+mse_f2
+        tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mes_u_bc    {mse_u_bc}    mes_v_bc    {mse_v_bc}    mse_f1    {mse_f1}    mse_f2    {mse_f2}")
+        return mse_u+mse_v+mse_u_bc+mse_v_bc+mse_f1+mse_f2
     def wrap_training_variables(self):
         var = self.model.trainable_variables
         # add C
@@ -221,10 +234,10 @@ class SSAInformedNN(NeuralNetwork): #{{{
 repoPath = "."
 appDataPath = os.path.join(repoPath, "SSA", "DATA")
 path = os.path.join(appDataPath, "SSA2D.mat")
-x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, xub, xlb, uub, ulb = prep_data(path, hp["N_0"], hp["N_f"])
+x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, xub, xlb, uub, ulb = prep_data(path, hp["N_0"], hp["N_f"])
 # Creating the model and training
 logger = Logger(hp)
-pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.8157e8)
+pinn = SSAInformedNN(hp, logger, X_f, X_bc, u_bc, xub, xlb, uub, ulb, eta=1.8157e8)
 # Linear viscosity
 #pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.0e15, n=1.0)
 
@@ -233,6 +246,6 @@ def error():
     u_pred, v_pred = pinn.predict(X_star)
     return (np.linalg.norm(u_star[:,0:1] - u_pred, 2)+np.linalg.norm(u_star[:,1:2] - v_pred, 2)) / np.linalg.norm(u_star[:,0:2], 2)
 logger.set_error_fn(error)
-pinn.fit(X_star, u_star)
-#pinn.fit(X_u_train, u_train)
+#pinn.fit(X_star, u_star)
+pinn.fit(X_u_train, u_train)
 u_pred, v_pred = pinn.predict(X_star)

@@ -47,8 +47,8 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, xub=None, xlb=None, uu
     u_bc = u_star[idbc[:,0],:]
 
     # Stacking them in multidimensional tensors for training (X_u_train is for now the continuous boundaries)
-    X_u_train = np.vstack([X_bc])
-    u_train = np.vstack([u_bc])
+    X_u_train = np.vstack([X_star])
+    u_train = np.vstack([u_star])
 
     # Generating the x and t collocation points for f, with each having a N_f size
     # We pointwise add and multiply to spread the LHS over the 2D domain
@@ -61,4 +61,4 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, xub=None, xlb=None, uu
     # Getting the corresponding u_train
     u_train = u_train [idx,:]
 
-    return x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f_train, xub, xlb, uub, ulb  #}}}
+    return x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f_train, X_bc, u_bc, xub, xlb, uub, ulb  #}}}
