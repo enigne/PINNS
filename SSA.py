@@ -98,6 +98,10 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
     # The actual PINN
     def f_model(self):
+        # viscosity
+        eta = self.eta
+        n = self.n
+
         # Using the new GradientTape paradigm of TF2.0,
         # which keeps track of operations to get the gradient at runtime
         with tf.GradientTape(persistent=True) as tape:
@@ -110,9 +114,6 @@ class SSAInformedNN(NeuralNetwork): #{{{
             # get ice thickness and bed
             H, bed = self.geometry_model(X_f)
             h = H + bed
-
-            eta = self.eta
-            n = self.n
 
             # Getting the prediction
             u, v, u_x, v_x, u_y, v_y = self.uvx_model(X_f)
@@ -158,7 +159,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         mse_f1 = 1e-6*tf.reduce_mean(tf.square(f1_pred)) 
         mse_f2 = 1e-6*tf.reduce_mean(tf.square(f2_pred)) 
 
-        tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mse_f1    {mse_f1}    mse_f2    {mse_f2}")
+#        tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mse_f1    {mse_f1}    mse_f2    {mse_f2}")
         return mse_u+mse_v+mse_f1+mse_f2
 
     def predict(self, X_star):
