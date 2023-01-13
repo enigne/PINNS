@@ -12,7 +12,7 @@ from scipy.interpolate import griddata
 repoPath = "."
 appDataPath = os.path.join(repoPath, "SSA", "DATA")
 
-def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, xub=None, xlb=None, uub=None, ulb=None): #{{{
+def prep_data(path, N_u=None, N_f=None, invertC=False): #{{{
     # Reading SSA ref solutions: x, y-coordinates, usol and Hsol
     data = scipy.io.loadmat(path,  mat_dtype=True)
 
@@ -25,6 +25,8 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, xub=None, xlb=None, uu
     Exact_b = np.real(data['b'].flatten()[:,None])
     Exact_vx = np.real(data['vx'].flatten()[:,None])
     Exact_vy = np.real(data['vy'].flatten()[:,None])
+    if invertC:
+        Exact_C = np.real(data['C'].flatten()[:,None])
 
     # boundary nodes
     DBC = data['DBC'].flatten()[:,None]
@@ -33,7 +35,10 @@ def prep_data(path, N_u=None, N_f=None, N_n=None, q=None, xub=None, xlb=None, uu
     X_star = np.hstack((x.flatten()[:,None], y.flatten()[:,None]))
 
     # Preparing the testing u_star and vy_star
-    u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None])) #, Exact_H.flatten()[:,None], Exact_b.flatten()[:,None]))
+    if invertC:
+        u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None], Exact_C.flatten()[:,None] )) #, Exact_H.flatten()[:,None], Exact_b.flatten()[:,None]))
+    else:
+        u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None])) #, Exact_H.flatten()[:,None], Exact_b.flatten()[:,None]))
 
     # Domain bounds: for regularization and generate training set
     xlb = X_star.min(axis=0)
