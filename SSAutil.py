@@ -26,7 +26,7 @@ def prep_data(path, N_u=None, N_f=None, invertC=False): #{{{
     Exact_vx = np.real(data['vx'].flatten()[:,None])
     Exact_vy = np.real(data['vy'].flatten()[:,None])
     if invertC:
-        Exact_C = np.real(data['C'].flatten()[:,None])
+        Exact_C = np.real(data['C'].flatten()[:,None])/100.0
 
     # boundary nodes
     DBC = data['DBC'].flatten()[:,None]

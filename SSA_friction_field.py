@@ -18,13 +18,13 @@ tf.random.set_seed(1234)
 # Hyper parameters {{{
 hp = {}
 # Data size on the solution u
-hp["N_u"] = 500
+hp["N_u"] = 1500
 # Collocation points size, where we’ll check for f = 0
 hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 3-sized output [u, v, C]
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 3]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 200
+hp["tf_epochs"] = 300
 hp["tf_lr"] = 0.1
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
@@ -146,7 +146,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         # Letting the tape go
         del tape
         u_norm = (u**2+v**2+1.0e-30)**0.5
-        alpha = (C)**2 * (u_norm)**(1.0/self.n - 1)
+        alpha = (C*100.0)**2 * (u_norm)**(1.0/self.n - 1)
 
         f1 = sigma11 + sigma12 - alpha*u - self.rhoi*self.g*H*h_x
         f2 = sigma21 + sigma22 - alpha*v - self.rhoi*self.g*H*h_y
@@ -172,8 +172,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         mse_u = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
         mse_v = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
-        mse_f1 = 1e-6*tf.reduce_mean(tf.square(f1_pred)) 
-        mse_f2 = 1e-6*tf.reduce_mean(tf.square(f2_pred)) 
+        mse_f1 = 1e-5*tf.reduce_mean(tf.square(f1_pred)) 
+        mse_f2 = 1e-5*tf.reduce_mean(tf.square(f2_pred)) 
 
         tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mes_u_bc    {mse_u_bc}    mes_v_bc    {mse_v_bc}    mse_f1    {mse_f1}    mse_f2    {mse_f2}")
         return mse_u+mse_v+mse_u_bc+mse_v_bc+mse_f1+mse_f2
@@ -201,5 +201,6 @@ def error():
 logger.set_error_fn(error)
 
 # train the model
-pinn.fit(X_u_train, u_train)
+#pinn.fit(X_u_train, u_train)
+pinn.fit(X_star, u_star)
 u_pred, v_pred = pinn.predict(X_star)
