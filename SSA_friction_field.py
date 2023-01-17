@@ -24,13 +24,13 @@ hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 3-sized output [u, v, C]
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 3]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 300
-hp["tf_lr"] = 0.1
-hp["tf_b1"] = 0.99
-hp["tf_eps"] = 1e-1
+hp["tf_epochs"] = 500
+hp["tf_lr"] = 0.01
+hp["tf_b1"] = 0.9
+hp["tf_eps"] = 1e-4
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
 hp["nt_epochs"] = 2000
-hp["nt_lr"] = 1.2
+hp["nt_lr"] = 0.8
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
 #}}}
@@ -166,14 +166,15 @@ class SSAInformedNN(NeuralNetwork): #{{{
         # B.C.
         u_bc = self.u_bc[:,0:1]
         v_bc = self.u_bc[:,1:2]
+        C_bc = self.u_bc[:,2:3]
         u_bc_pred, v_bc_pred, C_bc_pred, u_x_bc_pred, v_x_bc_pred, u_y_bc_pred, v_y_bc_pred = self.uvx_model(self.X_bc)
-        mse_u_bc = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u_bc - u_bc_pred))
-        mse_v_bc = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v_bc - v_bc_pred))
+        mse_u_bc = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u_bc - u_bc_pred)) +  1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v_bc - v_bc_pred))
+        mse_v_bc = tf.reduce_mean(tf.square(C_bc - C_bc_pred))
 
         mse_u = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
         mse_v = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
-        mse_f1 = 1e-5*tf.reduce_mean(tf.square(f1_pred)) 
-        mse_f2 = 1e-5*tf.reduce_mean(tf.square(f2_pred)) 
+        mse_f1 = 1e-6*tf.reduce_mean(tf.square(f1_pred)) 
+        mse_f2 = 1e-6*tf.reduce_mean(tf.square(f2_pred)) 
 
         tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mes_u_bc    {mse_u_bc}    mes_v_bc    {mse_v_bc}    mse_f1    {mse_f1}    mse_f2    {mse_f2}")
         return mse_u+mse_v+mse_u_bc+mse_v_bc+mse_f1+mse_f2
