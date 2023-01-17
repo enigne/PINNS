@@ -48,9 +48,9 @@ class NeuralNetwork(object):
         self.sizes_w = []
         self.sizes_b = []
         for i, width in enumerate(layers):
-            if i != 1:
-                self.sizes_w.append(int(width * layers[1]))
-                self.sizes_b.append(int(width if i != 0 else layers[1]))
+            if i > 0:
+                self.sizes_w.append(int(width * layers[i-1]))
+                self.sizes_b.append(int(width))
 
         self.logger = logger
 
