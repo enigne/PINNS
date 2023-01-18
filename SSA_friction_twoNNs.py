@@ -231,8 +231,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
         mse_u_bc = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u_bc - u_bc_pred)) +  1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v_bc - v_bc_pred))
         mse_v_bc = tf.reduce_mean(tf.square(C_bc - C_bc_pred))
 
-        mse_u = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
-        mse_v = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
+        mse_u = 1e-5*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = 1e-5*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
         mse_f1 = 1e-8*tf.reduce_mean(tf.square(f1_pred)) 
         mse_f2 = 1e-8*tf.reduce_mean(tf.square(f2_pred)) 
 
