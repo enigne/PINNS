@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import tensorflow_probability as tfp
 
 from custom_lbfgs import lbfgs, Struct
 
@@ -55,11 +56,11 @@ class NeuralNetwork(object):
         self.logger = logger
 
     # Defining custom loss
-    # @tf.function
+    @tf.function
     def loss(self, u, u_pred):
         return tf.reduce_mean(tf.square(u - u_pred))
 
-    # @tf.function
+    @tf.function
     def grad(self, X, u):
         with tf.GradientTape() as tape:
             loss_value = self.loss(u, self.model(X))
@@ -116,7 +117,7 @@ class NeuralNetwork(object):
             loss_value = self.tf_optimization_step(X_u, u)
             self.logger.log_train_epoch(epoch, loss_value)
 
-    # @tf.function
+    @tf.function
     def tf_optimization_step(self, X_u, u):
         loss_value, grads = self.grad(X_u, u)
         self.tf_optimizer.apply_gradients(
@@ -126,14 +127,14 @@ class NeuralNetwork(object):
     def nt_optimization(self, X_u, u):
         self.logger.log_train_opt("LBFGS")
         loss_and_flat_grad = self.get_loss_and_flat_grad(X_u, u)
-        # tfp.optimizer.lbfgs_minimize(
-        #   loss_and_flat_grad,
-        #   initial_position=self.get_weights(),
-        #   num_correction_pairs=nt_config.nCorrection,
-        #   max_iterations=nt_config.maxIter,
-        #   f_relative_tolerance=nt_config.tolFun,
-        #   tolerance=nt_config.tolFun,
-        #   parallel_iterations=6)
+        #tfp.optimizer.lbfgs_minimize(
+        #        loss_and_flat_grad,
+        #        initial_position=self.get_weights(),
+        #        num_correction_pairs=self.nt_config.nCorrection,
+        #        max_iterations=self.nt_config.maxIter,
+        #        f_relative_tolerance=self.nt_config.tolFun,
+        #        tolerance=self.nt_config.tolFun,
+        #        parallel_iterations=6)
         self.nt_optimization_steps(loss_and_flat_grad)
 
     def nt_optimization_steps(self, loss_and_flat_grad):
