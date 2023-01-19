@@ -167,3 +167,11 @@ class NeuralNetwork(object):
     def tensor(self, X):
         return tf.convert_to_tensor(X, dtype=self.dtype)
 
+    def save(self, path, name):
+        self.model.save_weights(path + name+'/Umodel_weights')
+        self.C_model.save_weights(path + name+'/Cmodel_weights')
+
+    def load(self, path, name):
+        self.model.load_weights(path + name+'/Umodel_weights')
+        self.C_model.load_weights(path + name+'/Cmodel_weights')
+

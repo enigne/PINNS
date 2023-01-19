@@ -263,5 +263,17 @@ logger.set_error_fn(error)
 
 # train the model
 #pinn.fit(X_u_train, u_train)
+
+# invert for C
 pinn.fit(X_star, u_star)
+
+# save the model
+pinn.save("./Models/", "2NNs_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
+
+# load the model
+#pinn.load("./Models/", "2NNs_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
+
+# predict and plot
 u_pred, v_pred = pinn.predict(X_star)
+
+# plot
