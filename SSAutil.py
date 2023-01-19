@@ -6,7 +6,6 @@ from datetime import datetime
 from pyDOE import lhs
 import os
 import sys
-from scipy.interpolate import griddata
 
 # "." for Colab/VSCode, and ".." for GitHub
 repoPath = "."
@@ -21,8 +20,6 @@ def prep_data(path, N_u=None, N_f=None, invertC=False): #{{{
     y = data['y'].flatten()[:,None]
     
     # real() is to make it float by default, in case of zeroes
-    Exact_H = np.real(data['H'].flatten()[:,None])
-    Exact_b = np.real(data['b'].flatten()[:,None])
     Exact_vx = np.real(data['vx'].flatten()[:,None])
     Exact_vy = np.real(data['vy'].flatten()[:,None])
     if invertC:
@@ -67,3 +64,32 @@ def prep_data(path, N_u=None, N_f=None, invertC=False): #{{{
     u_train = u_train [idx,:]
 
     return x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f_train, X_bc, u_bc, xub, xlb, uub, ulb  #}}}
+def prep_H_bed(path, N_f=None): #{{{
+    # Reading SSA ref solutions: x, y-coordinates, usol and Hsol
+    data = scipy.io.loadmat(path,  mat_dtype=True)
+
+    # Flatten makes [[]] into [], [:,None] makes it a column vector
+    x = data['x'].flatten()[:,None]
+    y = data['y'].flatten()[:,None]
+    
+    # real() is to make it float by default, in case of zeroes
+    Exact_H = np.real(data['H'].flatten()[:,None])
+    Exact_b = np.real(data['b'].flatten()[:,None])
+
+    # Preparing the inputs x and y for predictions in one single array, as X_star
+    X_star = np.hstack((x.flatten()[:,None], y.flatten()[:,None]))
+
+    # Preparing the testing u_star
+    u_star = np.hstack((Exact_H.flatten()[:,None], Exact_b.flatten()[:,None]))
+
+    # Domain bounds: for regularization and generate training set
+    xlb = X_star.min(axis=0)
+    xub = X_star.max(axis=0) 
+    ulb = u_star.min(axis=0)
+    uub = u_star.max(axis=0) 
+    
+    # Generating the x and t collocation points for f, with each having a N_f size
+    # We pointwise add and multiply to spread the LHS over the 2D domain
+    X_f = xlb + (xub-xlb)*lhs(2, N_f)
+
+    return x, y, X_star, u_star, X_f, xub, xlb, uub, ulb  #}}}
