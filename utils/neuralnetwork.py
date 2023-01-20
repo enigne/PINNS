@@ -8,10 +8,10 @@ from custom_lbfgs import lbfgs, Struct
 class MinmaxScaleLayer(tf.keras.layers.Layer):
     def __init__(self, lb, ub, scale=2.0, offset=1.0, dtype="float64"):
         super(MinmaxScaleLayer, self).__init__()
-        self.lb = tf.constant(lb, dtype=dtype)
-        self.ub = tf.constant(ub, dtype=dtype)
-        self.scale = tf.constant(scale, dtype=dtype)
-        self.offset = tf.constant(offset, dtype=dtype)
+        self.lb = tf.Variable(lb, dtype=dtype, trainable=False)
+        self.ub = tf.Variable(ub, dtype=dtype, trainable=False)
+        self.scale = tf.Variable(scale, dtype=dtype, trainable=False)
+        self.offset = tf.Variable(offset, dtype=dtype, trainable=False)
 
     def call(self, inputs):
         return self.scale*(inputs - self.lb)/(self.ub - self.lb) - self.offset
@@ -20,10 +20,10 @@ class MinmaxScaleLayer(tf.keras.layers.Layer):
 class UpScaleLayer(tf.keras.layers.Layer):
     def __init__(self, lb, ub, scale=0.5, offset=1.0, dtype="float64"):
         super(UpScaleLayer, self).__init__()
-        self.lb = tf.convert_to_tensor(lb, dtype=dtype)
-        self.ub = tf.constant(ub, dtype=dtype)
-        self.scale = tf.constant(scale, dtype=dtype)
-        self.offset = tf.constant(offset, dtype=dtype)
+        self.lb = tf.Variable(lb, dtype=dtype, trainable=False)
+        self.ub = tf.Variable(ub, dtype=dtype, trainable=False)
+        self.scale = tf.Variable(scale, dtype=dtype, trainable=False)
+        self.offset = tf.Variable(offset, dtype=dtype, trainable=False)
 
     def call(self, inputs):
         return self.lb + self.scale*(inputs + self.offset)*(self.ub - self.lb)
