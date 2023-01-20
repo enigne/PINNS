@@ -7,7 +7,7 @@ sys.path.append(".")
 sys.path.append("./utils")
 from custom_lbfgs import *
 from SSAutil import *
-from neuralnetwork import NeuralNetwork
+from neuralnetwork import NeuralNetwork, MinmaxScaleLayer, UpScaleLayer
 from logger import Logger
 import matplotlib.pyplot as plt
 
@@ -30,7 +30,7 @@ hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.9
 hp["tf_eps"] = 1e-4
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 10000
+hp["nt_epochs"] = 20000
 hp["nt_lr"] = 0.9
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
@@ -45,8 +45,9 @@ class SSAInformedNN(NeuralNetwork): #{{{
         # input layer
         self.C_model.add(tf.keras.layers.InputLayer(input_shape=(C_layers[0],)))
         # normalization layer
-        self.C_model.add(tf.keras.layers.Lambda(
-            lambda X: 2.0*(X - xlb)/(xub - xlb) - 1.0))
+       # self.C_model.add(tf.keras.layers.Lambda(
+       #     lambda X: 2.0*(X - xlb)/(xub - xlb) - 1.0))
+        self.C_model.add(MinmaxScaleLayer(xlb, xub))
         # NN layers
         for width in C_layers[1:-1]:
             self.C_model.add(tf.keras.layers.Dense(
@@ -58,8 +59,9 @@ class SSAInformedNN(NeuralNetwork): #{{{
                 kernel_initializer="glorot_normal"))
 
         # denormalization layer
-        self.C_model.add(tf.keras.layers.Lambda(
-            lambda X: ulb[2]+0.5*(X+1.0)*(uub[2]-ulb[2])))
+        self.C_model.add(UpScaleLayer(ulb[2], uub[2]))
+        #self.C_model.add(tf.keras.layers.Lambda(
+        #    lambda X: ulb[2]+0.5*(X+1.0)*(uub[2]-ulb[2])))
 
         # Computing the sizes of weights/biases for future decomposition
         for i, width in enumerate(C_layers):
@@ -243,6 +245,9 @@ class SSAInformedNN(NeuralNetwork): #{{{
         u_pred = h_pred[:, 0:1]
         v_pred = h_pred[:, 1:2]
         return u_pred.numpy(), v_pred.numpy()
+    def save(self, path, name):
+        self.model.save(path + name + "/Umodel")
+        self.C_model.save(path + name + "/Cmodel")
     #}}}
 
 
