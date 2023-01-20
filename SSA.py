@@ -9,6 +9,7 @@ from custom_lbfgs import *
 from SSAutil import *
 from neuralnetwork import NeuralNetwork
 from logger import Logger
+from plotting import *
 import matplotlib.pyplot as plt
 
 # Manually making sure the numpy random seeds are "the same" on all devices
@@ -24,18 +25,18 @@ hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 10000
+hp["tf_epochs"] = 4000
 hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 0
+hp["nt_epochs"] = 500
 hp["nt_lr"] = 0.9
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
 #}}}
 class SSAInformedNN(NeuralNetwork): #{{{
-    def __init__(self, hp, logger, X_f, xub, xlb, uub, ulb, eta, n=3.0):
+    def __init__(self, hp, logger, X_f, xub, xlb, uub, ulb, eta, n=3.0, geoDataNN=None):
         super().__init__(hp, logger, xub, xlb, uub, ulb)
 
         # scaling factors
@@ -52,12 +53,16 @@ class SSAInformedNN(NeuralNetwork): #{{{
         self.g = 9.81    # m/s^2
         self.hmin = 300
         self.hmax = 1000
-        self.C = 100
+        self.C = 0
         self.yts = 3600.0*24*365
 
         # Separating the collocation coordinates
         self.x_f = self.tensor(X_f[:, 0:1])
         self.y_f = self.tensor(X_f[:, 1:2])
+
+        # use H and bed interpolator
+        if geoDataNN: 
+            self.H_bed_model = tf.keras.models.load_model(geoDataNN)
 
     # set geometry as a function
     def geometry_model(self, X):
@@ -74,7 +79,13 @@ class SSAInformedNN(NeuralNetwork): #{{{
         H = hmax + (hmin-hmax)*(y-ymin)/(ymax-ymin) + 0.1*(hmin-hmax)*(x-xmin)/(xmax-xmin)
         bed = 20 - self.rhoi/self.rhow*H
         return H, bed
-    
+
+    def geometry_NN(self, X):
+        Hb = self.H_bed_model(X)
+        H = Hb[:, 0:1]
+        b = Hb[:, 1:2]
+        return H, b
+
     # Decomposes the multi-output into the x and y coordinates
     def uvx_model(self, X):
         x = X[:, 0:1]
@@ -112,7 +123,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
             X_f = tf.concat([self.x_f, self.y_f], axis=1)
 
             # get ice thickness and bed
-            H, bed = self.geometry_model(X_f)
+            #H, bed = self.geometry_model(X_f)
+            H, bed = self.geometry_NN(X_f)
             h = H + bed
 
             # Getting the prediction
@@ -173,19 +185,29 @@ class SSAInformedNN(NeuralNetwork): #{{{
 # set the path
 repoPath = "."
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-path = os.path.join(appDataPath, "SSA2D.mat")
+path = os.path.join(appDataPath, "SSA2D_nofriction.mat")
+# load the data
 x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, xub, xlb, uub, ulb = prep_data(path, hp["N_u"], hp["N_f"])
+
 # Creating the model and training
 logger = Logger(hp)
-pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.8157e8)
-# Linear viscosity
-#pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.0e15, n=1.0)
+pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.8157e8, geoDataNN="./Models/H_bed/")
 
 # error function for logger
 def error():
     u_pred, v_pred = pinn.predict(X_star)
     return (np.linalg.norm(u_star[:,0:1] - u_pred, 2)+np.linalg.norm(u_star[:,1:2] - v_pred, 2)) / np.linalg.norm(u_star[:,0:2], 2)
 logger.set_error_fn(error)
-#pinn.fit(X_star, u_star)
-pinn.fit(X_u_train, u_train)
-u_pred, v_pred = pinn.predict(X_star)
+
+# train the model
+pinn.fit(X_bc, u_bc)
+
+# plot
+plot_SSA(pinn, X_f, X_star, u_star, xlb, xub)
+
+# fit the data
+#pinn.fit(X_u_train, u_train)
+#u_pred, v_pred = pinn.predict(X_star)
+
+# test
+#plot_H_bed(pinn, X_star, u_star, xlb, xub)

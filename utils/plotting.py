@@ -4,7 +4,7 @@ import numpy as np
 
 yts = 3600*24*365
 
-def plot_SSA(pinn, X_star, u_star, xlb, xub): #{{{
+def plot_SSA(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     u_pred, v_pred = pinn.predict(X_star)
     
     yts = 3600*24*365
@@ -43,7 +43,7 @@ def plot_SSA(pinn, X_star, u_star, xlb, xub): #{{{
     
     ################################
     ax = axs[1][0]
-    im = ax.imshow(u_nn - ux, interpolation='nearest', cmap='rainbow',
+    im = ax.imshow(u_nn-ux, interpolation='nearest', cmap='rainbow',
                 extent=[X.min(), X.max(), Y.min(), Y.max()],
                 origin='lower', aspect='auto')
     # ax.set_xlabel('x')
@@ -53,7 +53,7 @@ def plot_SSA(pinn, X_star, u_star, xlb, xub): #{{{
     
     
     ax = axs[1][1]
-    im = ax.imshow(v_nn - uy, interpolation='nearest', cmap='rainbow',
+    im = ax.imshow(v_nn-uy, interpolation='nearest', cmap='rainbow',
                 extent=[X.min(), X.max(), Y.min(), Y.max()],
                 origin='lower', aspect='auto')
     # ax.set_xlabel('x')
@@ -192,7 +192,79 @@ def plot_SSA_C(pinn, X_star, u_star, xlb, xub): #{{{
 
     plt.show()
     #}}}
-def plot_H_bed(pinn, X_star, u_star, xlb, xub): #{{{
+def plot_H_bed(pinn, X_star, hb_star, xlb, xub): #{{{
+    H_pred, b_pred = pinn.geometry_NN(X_star)
+    H, b = pinn.geometry_model(X_star)
+
+    X, Y = np.meshgrid(np.linspace(xlb[0],xub[0]), np.linspace(xlb[1],xub[1]))
+    H = griddata(X_star, (H[:,0]).flatten(), (X, Y), method='cubic')
+    b = griddata(X_star, (b[:,0]).flatten(), (X, Y), method='cubic')
+    H_nn = griddata(X_star, (H_pred[:,0].numpy()).flatten(), (X, Y), method='cubic')
+    b_nn = griddata(X_star, (b_pred[:,0].numpy()).flatten(), (X, Y), method='cubic')
+
+    fig, axs = plt.subplots(3, 3, figsize=(12,12))
+
+    ax = axs[0][0]
+    im = ax.imshow(H, interpolation='nearest', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_title('obs H')
+    fig.colorbar(im, ax=ax, shrink=1)
+    # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*', markersize = 2, clip_on = False)
+
+    ax = axs[0][1]
+    im = ax.imshow(b, interpolation='nearest', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    ax.set_title('obs bed')
+    fig.colorbar(im, ax=ax, shrink=1)
+    # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*',  markersize = 2, clip_on = False)
+
+    ################################
+    ax = axs[1][0]
+    im = ax.imshow(H_nn - H, interpolation='nearest', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    # ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_title('predict - obs H')
+    fig.colorbar(im, ax=ax, shrink=1)
+
+
+    ax = axs[1][1]
+    im = ax.imshow(b_nn - b, interpolation='nearest', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    ax.set_title('predict - obs bed')
+    fig.colorbar(im, ax=ax, shrink=1)
+
+    #########################################
+    ax = axs[2][0]
+    im = ax.imshow(H_nn, interpolation='none', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_title('predict H')
+    fig.colorbar(im, ax=ax, shrink=1)
+    ax = axs[2][1]
+    im = ax.imshow(b_nn, interpolation='nearest', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    ax.set_title('predict bed')
+    fig.colorbar(im, ax=ax, shrink=1)
+
+    plt.show()
+    #}}}
+def plot_H_bed_train(pinn, X_star, u_star, xlb, xub): #{{{
     H_pred, b_pred = pinn.predict(X_star)
 
     X, Y = np.meshgrid(np.linspace(xlb[0],xub[0]), np.linspace(xlb[1],xub[1]))
