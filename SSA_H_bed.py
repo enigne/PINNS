@@ -102,8 +102,16 @@ logger.set_error_fn(error)
 pinn.fit(X_star, u_star)
 
 # save the weights
-pinn.model.save_weights("./Models/H_bed/")
+pinn.model.save("./Models/H_bed/")
 
 # plot
 plot_H_bed(pinn, X_star, u_star, xlb, xub)
+
+# test load
+pinn2 = HBedDNN(hp, logger, X_f, xub, xlb, uub, ulb)
+pinn2.model = tf.keras.models.load_model('./Models/H_bed/')
+
+# plot
+plot_H_bed(pinn2, X_star, u_star, xlb, xub)
+
 

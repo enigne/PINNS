@@ -4,7 +4,31 @@ import tensorflow_probability as tfp
 
 from custom_lbfgs import lbfgs, Struct
 
+# min-max scaling layer
+class MinmaxScaleLayer(tf.keras.layers.Layer):
+    def __init__(self, lb, ub, scale=2.0, offset=1.0, dtype="float64"):
+        super(MinmaxScaleLayer, self).__init__()
+        self.lb = tf.convert_to_tensor(lb, dtype=dtype)
+        self.ub = tf.convert_to_tensor(ub, dtype=dtype)
+        self.scale = tf.Variable(scale, dtype=dtype)
+        self.offset = tf.Variable(offset, dtype=dtype)
 
+    def call(self, inputs):
+        return self.scale*(inputs - self.lb)/(self.ub - self.lb) - self.offset
+
+# min-max up upscaling layer
+class UpScaleLayer(tf.keras.layers.Layer):
+    def __init__(self, lb, ub, scale=0.5, offset=1.0, dtype="float64"):
+        super(UpScaleLayer, self).__init__()
+        self.lb = tf.convert_to_tensor(lb, dtype=dtype)
+        self.ub = tf.convert_to_tensor(ub, dtype=dtype)
+        self.scale = tf.Variable(scale, dtype=dtype)
+        self.offset = tf.Variable(offset, dtype=dtype)
+
+    def call(self, inputs):
+        return self.lb + self.scale*(inputs + self.offset)*(self.ub - self.lb)
+
+# main class of PINNs
 class NeuralNetwork(object):
     def __init__(self, hp, logger, xub, xlb, uub, ulb):
 
@@ -29,8 +53,8 @@ class NeuralNetwork(object):
         # input layer
         self.model.add(tf.keras.layers.InputLayer(input_shape=(layers[0],)))
         # normalization layer
-        self.model.add(tf.keras.layers.Lambda(
-            lambda X: 2.0*(X - xlb)/(xub - xlb) - 1.0))
+        self.model.add(MinmaxScaleLayer(xlb, xub))
+
         # NN layers
         for width in layers[1:-1]:
             self.model.add(tf.keras.layers.Dense(
@@ -42,8 +66,7 @@ class NeuralNetwork(object):
                 kernel_initializer="glorot_normal"))
 
         # denormalization layer
-        self.model.add(tf.keras.layers.Lambda(
-            lambda X: ulb+0.5*(X+1.0)*(uub-ulb)))
+        self.model.add(UpScaleLayer(ulb, uub))
 
         # Computing the sizes of weights/biases for future decomposition
         self.sizes_w = []
@@ -167,11 +190,23 @@ class NeuralNetwork(object):
     def tensor(self, X):
         return tf.convert_to_tensor(X, dtype=self.dtype)
 
-    def save(self, path, name):
-        self.model.save_weights(path + name+'/Umodel_weights')
-        self.C_model.save_weights(path + name+'/Cmodel_weights')
+#    def save(self, path, name, mtype='Umodel'):
+#        if hasattr(self, 'model'):
+#            self.model.save(path + name + mtype)
+#        if hasattr(self, 'C_model'):
+#            self.C_model.save(path + name + '/Cmodel')
+#
+#    def load(self, path, name, mtype='Umodel'):
+#        if hasattr(self, 'model'):
+#            self.model = tf.keras.models.load_model(path + name+'/Umodel')
+#        if hasattr(self, 'C_model'):
+#            self.C_model = tf.keras.models.load_model(path + name+'/Cmodel')
 
-    def load(self, path, name):
-        self.model.load_weights(path + name+'/Umodel_weights')
-        self.C_model.load_weights(path + name+'/Cmodel_weights')
-
+#    def save_weights(self, path, name):
+#        self.model.save_weights(path + name+'/Umodel_weights')
+#        self.C_model.save_weights(path + name+'/Cmodel_weights')
+#
+#    def load_weights(self, path, name):
+#        self.model.load_weights(path + name+'/Umodel_weights')
+#        self.C_model.load_weights(path + name+'/Cmodel_weights')
+#
