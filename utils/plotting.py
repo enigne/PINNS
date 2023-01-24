@@ -335,3 +335,44 @@ def plot_H_bed_train(pinn, X_star, u_star, xlb, xub): #{{{
 
     plt.show()
     #}}}
+def plot_C_train(pinn, X_star, u_star, xlb, xub): #{{{
+    C_pred = pinn.predict(X_star)
+
+    X, Y = np.meshgrid(np.linspace(xlb[0],xub[0]), np.linspace(xlb[1],xub[1]))
+    C = griddata(X_star, u_star[:,None].flatten(), (X, Y), method='cubic')
+    C_nn = griddata(X_star, C_pred[:,0].flatten(), (X, Y), method='cubic')
+
+    fig, axs = plt.subplots(3, 3, figsize=(12,12))
+
+    ax = axs[0][0]
+    im = ax.imshow(C, interpolation='nearest', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_title('obs C')
+    fig.colorbar(im, ax=ax, shrink=1)
+    # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*', markersize = 2, clip_on = False)
+
+    ################################
+    ax = axs[1][0]
+    im = ax.imshow(C_nn - C, interpolation='nearest', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    # ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_title('predict - obs C')
+    fig.colorbar(im, ax=ax, shrink=1)
+
+    #########################################
+    ax = axs[2][0]
+    im = ax.imshow(C_nn, interpolation='none', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_title('predict C')
+    fig.colorbar(im, ax=ax, shrink=1)
+
+    plt.show()
+    #}}}
