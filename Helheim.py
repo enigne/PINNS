@@ -187,11 +187,11 @@ repoPath = "/totten_1/chenggong/"
 appDataPath = os.path.join(repoPath, "Helheim", "DATA")
 path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN.mat")
 # load the data
-x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, xub, xlb, uub, ulb = prep_data(path, hp["N_u"])
+x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb = prep_Helheim_data(path, hp["N_u"], hp["N_f"])
 
 # Creating the model and training
 logger = Logger(hp)
-pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.8157e8, geoDataNN="./Models/H_bed/")
+pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.26802e8, geoDataNN="./Models/Helheim_H_bed/")
 
 # error function for logger
 def error():
@@ -200,7 +200,7 @@ def error():
 logger.set_error_fn(error)
 
 # train the model
-#pinn.fit(X_bc, u_bc)
+pinn.fit(X_bc, u_bc)
 
 # plot
 #plot_SSA(pinn, X_f, X_star, u_star, xlb, xub)

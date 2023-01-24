@@ -89,7 +89,7 @@ def prep_H_bed(path, N_f=None): #{{{
     X_f = xlb + (xub-xlb)*lhs(2, N_f)
 
     return x, y, X_star, u_star, X_f, xub, xlb, uub, ulb  #}}}
-def prep_Helheim_data(path, N_u=None): #{{{
+def prep_Helheim_data(path, N_u=None, N_f=None, invertC=False): #{{{
     # Reading SSA ref solutions: x, y-coordinates, usol and Hsol
     data = scipy.io.loadmat(path,  mat_dtype=True)
 
@@ -97,11 +97,16 @@ def prep_Helheim_data(path, N_u=None): #{{{
     x = data['x'].flatten()[:,None]
     y = data['y'].flatten()[:,None]
 
+    # collocation points
+    X_f = np.real(data['X_f'])
+    idf = np.random.choice(X_f.shape[0], N_f, replace=False)
+    X_f = X_f[idf,:]
+
     # real() is to make it float by default, in case of zeroes
     Exact_vx = np.real(data['vx'].flatten()[:,None])
     Exact_vy = np.real(data['vy'].flatten()[:,None])
     if invertC:
-        Exact_C = np.real(data['C'].flatten()[:,None])/100.0
+        Exact_C = np.real(data['C'].flatten()[:,None])
 
     # boundary nodes
     DBC = data['DBC'].flatten()[:,None]
@@ -126,13 +131,11 @@ def prep_Helheim_data(path, N_u=None): #{{{
     X_bc = X_star[idbc[:,0],:]
     u_bc = u_star[idbc[:,0],:]
 
-    # Stacking them in multidimensional tensors for training (X_u_train is for now the continuous boundaries)
-    X_u_train = np.vstack([X_star])
-    u_train = np.vstack([u_star])
-
-    # Generating the x and t collocation points for f, with each having a N_f size
-    # We pointwise add and multiply to spread the LHS over the 2D domain
-    X_f_train = xlb + (xub-xlb)*lhs(2, N_f)
+    # Stacking them in multidimensional tensors for training, only use ice covered area
+    icemask = data['icemask'].flatten()[:,None]
+    iice = np.transpose(np.asarray(icemask>0).nonzero())
+    X_u_train = np.vstack([X_star[iice[:,0],:]])
+    u_train = np.vstack([u_star[iice[:,0],:]])
 
     # Generating a uniform random sample from ints between 0, and the size of x_u_train, of size N_u (initial data size) and without replacement (unique)
     idx = np.random.choice(X_u_train.shape[0], N_u, replace=False)
@@ -141,7 +144,16 @@ def prep_Helheim_data(path, N_u=None): #{{{
     # Getting the corresponding u_train
     u_train = u_train [idx,:]
 
-    return x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f_train, X_bc, u_bc, xub, xlb, uub, ulb  #}}}
+    # calving front info
+    cx = data['cx'].flatten()[:,None]
+    cy = data['cy'].flatten()[:,None]
+    nx = data['smoothnx'].flatten()[:,None]
+    ny = data['smoothny'].flatten()[:,None]
+
+    X_cf = np.hstack((cx.flatten()[:,None], cy.flatten()[:,None]))
+    n_cf = np.hstack((nx.flatten()[:,None], ny.flatten()[:,None]))
+
+    return x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb  #}}}
 def prep_Helheim_H_bed(path): #{{{
     # Reading SSA ref solutions: x, y-coordinates, usol and Hsol
     data = scipy.io.loadmat(path,  mat_dtype=True)
