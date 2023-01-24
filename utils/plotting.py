@@ -335,4 +335,3 @@ def plot_H_bed_train(pinn, X_star, u_star, xlb, xub): #{{{
 
     plt.show()
     #}}}
-    
