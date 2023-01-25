@@ -68,6 +68,10 @@ class NeuralNetwork(object):
         # denormalization layer
         self.model.add(UpScaleLayer(ulb, uub))
 
+        # setup trainable layers
+        self.trainableLayers = self.model.layers[1:-1]
+        self.trainableVariables = self.model.trainable_variables
+
         # Computing the sizes of weights/biases for future decomposition
         self.sizes_w = []
         self.sizes_b = []
@@ -91,7 +95,7 @@ class NeuralNetwork(object):
         return loss_value, grads
 
     def wrap_training_variables(self):
-        var = self.model.trainable_variables
+        var = self.trainableVariables 
         return var
 
     def get_params(self, numpy=False):
@@ -99,7 +103,7 @@ class NeuralNetwork(object):
 
     def get_weights(self, convert_to_tensor=True):
         w = []
-        for layer in self.model.layers[1:-1]:
+        for layer in self.trainableLayers:
             weights_biases = layer.get_weights()
             weights = weights_biases[0].flatten()
             biases = weights_biases[1]
@@ -110,7 +114,7 @@ class NeuralNetwork(object):
         return w
 
     def set_weights(self, w):
-        for i, layer in enumerate(self.model.layers[1:-1]):
+        for i, layer in enumerate(self.trainableLayers):
             start_weights = sum(self.sizes_w[:i]) + sum(self.sizes_b[:i])
             end_weights = sum(self.sizes_w[:i+1]) + sum(self.sizes_b[:i])
             weights = w[start_weights:end_weights]

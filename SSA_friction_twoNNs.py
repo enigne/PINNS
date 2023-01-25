@@ -87,9 +87,6 @@ class SSAInformedNN(NeuralNetwork): #{{{
         self.g = 9.81    # m/s^2
         self.hmin = 300
         self.hmax = 1000
-        #self.C = 100
-        #self.C = tf.Variable([0.5], dtype=self.dtype)
-
         self.yts = 3600.0*24*365
 
         # Separating the collocation coordinates
@@ -121,7 +118,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
             layer.set_weights(weights_biases)
 
     def wrap_training_variables(self):
-        var = pinn.model.trainable_variables+pinn.C_model.trainable_variables
+        var = self.model.trainable_variables+self.C_model.trainable_variables
         return var
 
     # set geometry as a function
