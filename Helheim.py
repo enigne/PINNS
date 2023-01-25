@@ -26,7 +26,7 @@ hp["N_f"] = 1000
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 #hp["C_layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 30000
+hp["tf_epochs"] = 1000
 hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
@@ -267,10 +267,10 @@ class SSAInformedNN(NeuralNetwork): #{{{
 #                    1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v_bc - v_bc_pred))
         #mse_C_bc = tf.reduce_mean(tf.square(C_bc - C_bc_pred))
 
-        mse_u = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
-        mse_v = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
-        mse_f1 = 1e-8*tf.reduce_mean(tf.square(f1_pred))
-        mse_f2 = 1e-8*tf.reduce_mean(tf.square(f2_pred))
+        mse_u = 1e-8*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = 1e-8*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
+        mse_f1 = 1e-12*tf.reduce_mean(tf.square(f1_pred))
+        mse_f2 = 1e-12*tf.reduce_mean(tf.square(f2_pred))
         mse_fc1 = 0.0*1e-14*tf.reduce_mean(tf.square(fc1_pred))
         mse_fc2 = 0.0*1e-14*tf.reduce_mean(tf.square(fc2_pred))
 
