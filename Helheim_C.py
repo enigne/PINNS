@@ -30,7 +30,7 @@ hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 1000
+hp["nt_epochs"] = 10000
 hp["nt_lr"] = 1.2
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
@@ -87,7 +87,7 @@ pinn.model.save("./Models/Helheim_C/")
 plot_C_train(pinn, X_star, u_star, xlb, xub)
 
 # test load
-pinn2 = HBedDNN(hp, logger, X_f, xub, xlb, uub, ulb)
+pinn2 = FrictionCDNN(hp, logger, X_f, xub, xlb, uub, ulb)
 pinn2.model = tf.keras.models.load_model('./Models/Helheim_C/')
 
 # plot
