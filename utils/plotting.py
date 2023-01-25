@@ -421,7 +421,7 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
             origin='lower', aspect='auto')
     # ax.set_xlabel('x')
     # ax.set_ylabel('y')
-    ax.set_title('obs v')
+    ax.set_title('friction C')
     fig.colorbar(im, ax=ax, shrink=1)
     # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*',  markersize = 2, clip_on = False)
 
