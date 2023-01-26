@@ -31,10 +31,11 @@ hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 1000
+hp["nt_epochs"] = 500
 hp["nt_lr"] = 0.9
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
+hp["use_tfp"] = True
 #}}}
 class SSAInformedNN(NeuralNetwork): #{{{
     def __init__(self, hp, logger, X_f, 
@@ -109,28 +110,13 @@ class SSAInformedNN(NeuralNetwork): #{{{
         if geoDataNN: 
             self.H_bed_model = tf.keras.models.load_model(geoDataNN)
 
-
-    # set geometry as a function
-    def geometry_model(self, X):
-        x = X[:, 0:1]
-        y = X[:, 1:2]
-        
-        # load the range
-        xmax, ymax = self.ub
-        xmin, ymin = self.lb
-        hmax = self.hmax
-        hmin = self.hmin
-        
-        # ice shelf 
-        H = hmax + (hmin-hmax)*(y-ymin)/(ymax-ymin) + 0.1*(hmin-hmax)*(x-xmin)/(xmax-xmin)
-        bed = 20 - self.rhoi/self.rhow*H
-        return H, bed
-
     def geometry_NN(self, X):
         Hb = self.H_bed_model(X)
         H = Hb[:, 0:1]
         b = Hb[:, 1:2]
-        return H, b
+        hx = Hb[:, 2:3]
+        hy = Hb[:, 3:4]
+        return H, b, hx, hy
 
     # get the velocity and derivative information
     def uvx_model(self, X):
@@ -207,8 +193,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
             X_f = tf.concat([self.x_f, self.y_f], axis=1)
 
             # get ice thickness and bed
-            H, bed = self.geometry_NN(X_f)
-            h = H + bed
+            H, bed, h_x, h_y = self.geometry_NN(X_f)
 
             # Getting the prediction
             u, v, u_x, v_x, u_y, v_y = self.uvx_model(X_f)
@@ -229,10 +214,6 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         sigma21 = tape.gradient(B12, self.x_f)
         sigma22 = tape.gradient(B22, self.y_f)
-
-        # surface gradient
-        h_x = tape.gradient(h, self.x_f)
-        h_y = tape.gradient(h, self.y_f)
 
         # Letting the tape go
         del tape
@@ -279,18 +260,6 @@ class SSAInformedNN(NeuralNetwork): #{{{
                 mse_f1 + mse_f2 + \
                 mse_fc1 + mse_fc2
               #  + mse_C_bc
-
-    def nt_optimization(self, X_u, u):
-        self.logger.log_train_opt("LBFGS")
-        loss_and_flat_grad = self.get_loss_and_flat_grad(X_u, u)
-        tfp.optimizer.lbfgs_minimize(
-                loss_and_flat_grad,
-                initial_position=self.get_weights(),
-                num_correction_pairs=self.nt_config.nCorrection,
-                max_iterations=self.nt_config.maxIter,
-                f_relative_tolerance=self.nt_config.tolFun,
-                tolerance=self.nt_config.tolFun,
-                parallel_iterations=10)
 
     def predict(self, X_star):
         h_pred = self.model(X_star)
