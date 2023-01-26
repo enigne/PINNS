@@ -31,7 +31,7 @@ hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 5000
+hp["nt_epochs"] = 1000
 hp["nt_lr"] = 0.6
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
@@ -311,8 +311,11 @@ def error():
 logger.set_error_fn(error)
 
 # train the model
-#pinn.fit(X_star, u_star)
-pinn.fit(X_bc, u_bc)
+pinn.fit(X_star, u_star)
+#pinn.fit(X_bc, u_bc)
+
+# save
+pinn.save("./Models/", "SheetShelf_nocalving_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
 
 # plot
 plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub)
