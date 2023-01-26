@@ -4,6 +4,8 @@ md=triangle(model(),'./Exp/Square.exp',10000.);
 md=parameterize(md,'./Par/SquareSheetShelf.par');
 md=setflowequation(md,'SSA','all');
 md=SetMarineIceSheetBC(md,'./Exp/SquareFront.exp');
+md.friction.coefficient = 20*ones(md.mesh.numberofvertices,1);
+md.mask.ocean_levelset = ones(md.mesh.numberofvertices,1);
 
 md.cluster=generic('name',oshostname(),'np',4);
 md=solve(md,'Stressbalance');
@@ -15,8 +17,13 @@ b = md.geometry.base;
 vx = md.results.StressbalanceSolution.Vx ./ md.constants.yts;
 vy = md.results.StressbalanceSolution.Vy ./ md.constants.yts;
 C = md.friction.coefficient;
-C(md.mask.ocean_levelset<0) = 0.0;
 
+% compute the surface slopes
+asurf = averaging(md,md.geometry.surface,20); % maybe executing 20 L2 projection is ok
+[ssx, ssy] = computeGrad(md.mesh.elements, md.mesh.x, md.mesh.y, asurf); % compute the gradient
+ssx = averaging(md,ssx,50); 
+ssy = averaging(md,ssy,50); 
+ss = sqrt(ssx.^2+ssy.^2);
 
 
 % Dirichlet boundary
@@ -73,5 +80,6 @@ icemask_f = icemask_(icemask_>0.5);
 plot(X_f(:,1), X_f(:,2), 'o')
 
 save(['./DATA/SSA2D_calving.mat'], 'x', 'y', 'H', 'b', 'vx', 'vy', 'C', 'DBC', 'icemask',...
-'cx', 'cy', 'nx', 'ny', 'smoothnx', 'smoothny', 'X_f', 'icemask_f');
-plotmodel(md, 'data', md.results.StressbalanceSolution.Vel, 'data', C, 'data', vx, 'data', vy, 'data', md.mask.ice_levelset<0)
+	'ssx', 'ssy',...
+	'cx', 'cy', 'nx', 'ny', 'smoothnx', 'smoothny', 'X_f', 'icemask_f');
+plotmodel(md, 'data', md.results.StressbalanceSolution.Vel, 'data', C, 'data', vx, 'data', vy, 'data', md.mask.ice_levelset<0, 'data', md.mask.ocean_levelset<0)
