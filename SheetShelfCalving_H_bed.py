@@ -23,17 +23,18 @@ hp["N_u"] = 50
 # Collocation points size, where we’ll check for f = 0
 hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
-hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
+hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 4]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
 hp["tf_epochs"] = 4000
 hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 2000
+hp["nt_epochs"] = 400
 hp["nt_lr"] = 1.2
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
+hp["use_tfp"] = True
 #}}}
 class HBedDNN(NeuralNetwork): #{{{
     def __init__(self, hp, logger, X_f, xub, xlb, uub, ulb):
@@ -66,14 +67,21 @@ class HBedDNN(NeuralNetwork): #{{{
     def loss(self, hb, hb_pred):
         h0 = hb[:, 0:1]
         b0 = hb[:, 1:2]
+        hx0 = hb[:, 2:3]
+        hy0 = hb[:, 3:4]
+
         h0_pred = hb_pred[:, 0:1]
         b0_pred = hb_pred[:, 1:2]
+        hx0_pred = hb_pred[:, 2:3]
+        hy0_pred = hb_pred[:, 3:4]
 
         mse_h = tf.reduce_mean(tf.square(h0 - h0_pred))
         mse_b = tf.reduce_mean(tf.square(b0 - b0_pred))
+        mse_hx = tf.reduce_mean(tf.square(hx0 - hx0_pred))
+        mse_hy = tf.reduce_mean(tf.square(hy0 - hy0_pred))
 
 #        tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mse_f1    {mse_f1}    mse_f2    {mse_f2}")
-        return mse_h+mse_b
+        return mse_h+mse_b+mse_hx+mse_hy
 
     def predict(self, X_star):
         h_pred = self.model(X_star)

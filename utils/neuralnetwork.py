@@ -45,6 +45,10 @@ class NeuralNetwork(object):
             learning_rate=hp["tf_lr"],
             beta_1=hp["tf_b1"],
             epsilon=hp["tf_eps"])
+        if "use_tfp" in hp.keys():
+            self.use_tfp = hp["use_tfp"]
+        else:
+            self.use_tfp = False
 
         self.dtype = "float64"
         # Descriptive Keras model
@@ -171,6 +175,20 @@ class NeuralNetwork(object):
               lambda epoch, loss, is_iter:
               self.logger.log_train_epoch(epoch, loss, "", is_iter))
 
+    def tfp_nt_optimization(self, X_u, u):
+        self.logger.log_train_opt("tfp-LBFGS")
+        loss_and_flat_grad = self.get_loss_and_flat_grad(X_u, u)
+        tfp.optimizer.lbfgs_minimize(
+                loss_and_flat_grad,
+                initial_position=self.get_weights(),
+                num_correction_pairs=self.nt_config.nCorrection,
+                max_iterations=self.nt_config.maxIter,
+                max_line_search_iterations=50,
+                initial_inverse_hessian_estimate=None,
+                f_relative_tolerance=self.nt_config.tolFun,
+                tolerance=1e-8, 
+                parallel_iterations=20)
+
     def fit(self, X_u, u):
         self.logger.log_train_start(self)
 
@@ -180,7 +198,11 @@ class NeuralNetwork(object):
 
         # Optimizing
         self.tf_optimization(X_u, u)
-        self.nt_optimization(X_u, u)
+
+        if self.use_tfp:
+            self.tfp_nt_optimization(X_u, u)
+        else:
+            self.nt_optimization(X_u, u)
 
         self.logger.log_train_end(self.tf_epochs + self.nt_config.maxIter)
 
