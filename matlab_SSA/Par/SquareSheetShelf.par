@@ -10,11 +10,15 @@ xmax=max(md.mesh.x);
 md.geometry.thickness=hmax+(hmin-hmax)*(md.mesh.y-ymin)/(ymax-ymin)+0.1*(hmin-hmax)*(md.mesh.x-xmin)/(xmax-xmin);
 md.geometry.base=-md.materials.rho_ice/md.materials.rho_water*md.geometry.thickness;
 bed_sheet=-md.materials.rho_ice/md.materials.rho_water*(hmax+(hmin-hmax)*(ymax/2-ymin)/(ymax-ymin));
-pos=find(md.mesh.y<=ymax/2.);
+pos=find(md.geometry.base<bed_sheet);
 md.geometry.base(pos)=bed_sheet;
 md.geometry.surface=md.geometry.base+md.geometry.thickness;
 
-%Initial velocity 
+% compute oceanlevelset
+md = setmask(md, 'all', '');
+md.mask.ocean_levelset = -1*ones(md.mesh.numberofvertices, 1);
+md.mask.ocean_levelset(pos) = 1; 
+
 %Initial velocity
 ISSMPath = issmdir();
 x     = archread([ISSMPath, 'test/Data/SquareSheetConstrained.arch'],'x');

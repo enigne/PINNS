@@ -1,7 +1,6 @@
 %Test Name: SquareSheetShelfStressSSA2d
 ISSMpath = issmdir();
 md=triangle(model(),'./Exp/Square.exp',10000.);
-md=setmask(md,'./Exp/SquareShelf.exp','');
 md=parameterize(md,'./Par/SquareSheetShelf.par');
 md=setflowequation(md,'SSA','all');
 md=SetMarineIceSheetBC(md,'./Exp/SquareFront.exp');

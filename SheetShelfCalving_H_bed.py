@@ -86,7 +86,7 @@ class HBedDNN(NeuralNetwork): #{{{
 # set the path
 repoPath = "/totten_1/chenggong/PINNs/"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-path = os.path.join(appDataPath, "SSA2D_calving.mat")
+path = os.path.join(appDataPath, "SSA2D_nocalving.mat")
 x, y, X_star, u_star, X_f, xub, xlb, uub, ulb = prep_Helheim_H_bed(path)
 # Creating the model and training
 logger = Logger(hp)

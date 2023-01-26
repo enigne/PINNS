@@ -30,8 +30,8 @@ hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 50
-hp["nt_lr"] = 0.8
+hp["nt_epochs"] = 500
+hp["nt_lr"] = 1.2
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
 #}}}
@@ -65,7 +65,7 @@ class FrictionCDNN(NeuralNetwork): #{{{
 # set the path
 repoPath = "/totten_1/chenggong/PINNs/"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-path = os.path.join(appDataPath, "SSA2D_calving.mat")
+path = os.path.join(appDataPath, "SSA2D_nocalving.mat")
 x, y, X_star, u_star, X_f, xub, xlb, uub, ulb = prep_Helheim_C(path)
 # Creating the model and training
 logger = Logger(hp)
