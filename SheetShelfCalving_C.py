@@ -25,12 +25,12 @@ hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 2000
+hp["tf_epochs"] = 200
 hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 500
+hp["nt_epochs"] = 0
 hp["nt_lr"] = 1.2
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
@@ -81,14 +81,14 @@ logger.set_error_fn(error)
 pinn.fit(X_star, u_star)
 
 # save the weights
-pinn.model.save("./Models/SheetShelf_C/")
+pinn.model.save("./Models/SheetShelf_C_constant/")
 
 # plot
 plot_C_train(pinn, X_star, u_star, xlb, xub)
 
 # test load
 pinn2 = FrictionCDNN(hp, logger, X_f, xub, xlb, uub, ulb)
-pinn2.model = tf.keras.models.load_model('./Models/SheetShelf_C/')
+pinn2.model = tf.keras.models.load_model('./Models/SheetShelf_C_constant/')
 
 # plot
 plot_C_train(pinn2, X_star, u_star, xlb, xub)
