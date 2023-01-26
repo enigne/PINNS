@@ -380,6 +380,12 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     u_pred, v_pred = pinn.predict(X_star)
     C  = pinn.C_model(X_star)
     C_pred = C[:, 0].numpy()
+    hb_pred = pinn.H_bed_model(X_star)
+    H = hb_pred[:,0:1]
+    b = hb_pred[:,1:2]
+    hx = hb_pred[:,2:3]
+    hy = hb_pred[:,3:4]
+    hxy = (hx**2+hy**2)**0.5
 
     yts = 3600*24*365
     X, Y = np.meshgrid(np.linspace(xlb[0],xub[0]), np.linspace(xlb[1],xub[1]))
@@ -388,12 +394,15 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     u_nn = yts*griddata(X_star, u_pred[:,0].flatten(), (X, Y), method='cubic')
     v_nn = yts*griddata(X_star, v_pred[:,0].flatten(), (X, Y), method='cubic')
     C_nn = griddata(X_star, C_pred, (X, Y), method='cubic')
+    H_nn = griddata(X_star, H, (X, Y), method='cubic')
+    b_nn = griddata(X_star, b, (X, Y), method='cubic')
+    hxy_nn = griddata(X_star, hxy, (X, Y), method='cubic')
 
     f1, f2 = pinn.f_model()
     F1 = griddata(X_f, f1[:,0], (X, Y), method='cubic')
     F2 = griddata(X_f, f2[:,0], (X, Y), method='cubic')
 
-    fig, axs = plt.subplots(3, 3, figsize=(12,12))
+    fig, axs = plt.subplots(3, 4, figsize=(16,12))
 
     ax = axs[0][0]
     im = ax.imshow(ux, interpolation='nearest', cmap='rainbow',
@@ -427,6 +436,16 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     fig.colorbar(im, ax=ax, shrink=1)
     # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*',  markersize = 2, clip_on = False)
 
+    ax = axs[0][3]
+    im = ax.imshow(H_nn, interpolation='nearest', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    ax.set_title('Thickness')
+    fig.colorbar(im, ax=ax, shrink=1)
+    # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*',  markersize = 2, clip_on = False)
+
     ################################
     ax = axs[1][0]
     im = ax.imshow(u_nn, interpolation='nearest', cmap='rainbow',
@@ -449,6 +468,15 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax.set_title('predict v')
     fig.colorbar(im, ax=ax, shrink=1)
 
+    ax = axs[1][3]
+    im = ax.imshow(b_nn, interpolation='nearest', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    ax.set_title('bed')
+    fig.colorbar(im, ax=ax, shrink=1)
+
     ################################
     ax = axs[2][0]
     im = ax.imshow(u_nn - ux, interpolation='nearest', cmap='rainbow',
@@ -469,6 +497,15 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax.set_title('predict - obs v')
     fig.colorbar(im, ax=ax, shrink=1)
 
+    ax = axs[2][3]
+    im = ax.imshow(hxy_nn, interpolation='nearest', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    ax.set_title('surface gradient')
+    fig.colorbar(im, ax=ax, shrink=1)
+
     #########################################
     ax = axs[1][2]
     im = ax.imshow(F1, interpolation='none', cmap='rainbow',
@@ -478,6 +515,7 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax.set_ylabel('y')
     ax.set_title('f1 residual')
     fig.colorbar(im, ax=ax, shrink=1)
+
     ax = axs[2][2]
     im = ax.imshow(F2, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
