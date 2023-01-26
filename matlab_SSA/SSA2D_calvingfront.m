@@ -11,7 +11,7 @@ md=solve(md,'Stressbalance');
 x = md.mesh.x;
 y = md.mesh.y;
 H = md.geometry.thickness;
-b = md.geometry.bed;
+b = md.geometry.base;
 vx = md.results.StressbalanceSolution.Vx ./ md.constants.yts;
 vy = md.results.StressbalanceSolution.Vy ./ md.constants.yts;
 C = md.friction.coefficient;
@@ -58,7 +58,7 @@ icemask = (md.mask.ice_levelset<0) & (~DBC);
 % create collocation points
 Xmin = min([x, y]);
 Xmax = max([x, y]);
-Nf = 15000;
+Nf = 1500;
 X_ = Xmin + (Xmax - Xmin) .* lhsdesign(Nf, 2);
 icemask_ = InterpFromMeshToMesh2d(md.mesh.elements,x,y, icemask+0, X_(:,1), X_(:,2));
 X_f = X_(icemask_>0.5, :);
