@@ -26,13 +26,13 @@ hp["N_f"] = 1000
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 #hp["C_layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 1000
+hp["tf_epochs"] = 2000
 hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
 hp["nt_epochs"] = 1000
-hp["nt_lr"] = 1.2
+hp["nt_lr"] = 0.9
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
 #}}}
@@ -269,8 +269,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         mse_u = 1e-4*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
         mse_v = 1e-4*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
-        mse_f1 = 1e-8*tf.reduce_mean(tf.square(f1_pred))
-        mse_f2 = 1e-8*tf.reduce_mean(tf.square(f2_pred))
+        mse_f1 = 1e-4*tf.reduce_mean(tf.square(f1_pred))
+        mse_f2 = 1e-4*tf.reduce_mean(tf.square(f2_pred))
         mse_fc1 = 0.0 #1e-10*tf.reduce_mean(tf.square(fc1_pred))
         mse_fc2 = 0.0 #1e-10*tf.reduce_mean(tf.square(fc2_pred))
 
@@ -279,6 +279,18 @@ class SSAInformedNN(NeuralNetwork): #{{{
                 mse_f1 + mse_f2 + \
                 mse_fc1 + mse_fc2
               #  + mse_C_bc
+
+    def nt_optimization(self, X_u, u):
+        self.logger.log_train_opt("LBFGS")
+        loss_and_flat_grad = self.get_loss_and_flat_grad(X_u, u)
+        tfp.optimizer.lbfgs_minimize(
+                loss_and_flat_grad,
+                initial_position=self.get_weights(),
+                num_correction_pairs=self.nt_config.nCorrection,
+                max_iterations=self.nt_config.maxIter,
+                f_relative_tolerance=self.nt_config.tolFun,
+                tolerance=self.nt_config.tolFun,
+                parallel_iterations=10)
 
     def predict(self, X_star):
         h_pred = self.model(X_star)
@@ -302,7 +314,7 @@ pinn = SSAInformedNN(hp, logger, X_f,
         xub, xlb, uub, ulb, 
         eta=1.8157e8, 
         geoDataNN="./Models/SheetShelf_H_bed/", 
-        FrictionCNN="./Models/SheetShelf_C/")
+        FrictionCNN="./Models/SheetShelf_C_constant/")
 
 # error function for logger
 def error():
@@ -311,11 +323,11 @@ def error():
 logger.set_error_fn(error)
 
 # train the model
-pinn.fit(X_star, u_star)
-#pinn.fit(X_bc, u_bc)
+#pinn.fit(X_star, u_star)
+pinn.fit(X_bc, u_bc)
 
 # save
-pinn.save("./Models/", "SheetShelf_nocalving_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
+#pinn.save("./Models/", "SheetShelf_nocalving_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
 
 # plot
 plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub)
