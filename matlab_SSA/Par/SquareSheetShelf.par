@@ -64,7 +64,7 @@ md.timestepping.final_time=3.;
 md.groundingline.migration='None';
 
 %Deal with boundary conditions:
-md=SetMarineIceSheetBC(md,'./Exp/SquareFront.exp');
+%md=SetMarineIceSheetBC(md,'./Exp/SquareFront.exp');
 
 %Change name so that no test have the same name
 A=dbstack;
