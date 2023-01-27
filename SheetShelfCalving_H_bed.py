@@ -19,7 +19,7 @@ tf.random.set_seed(1234)
 # Hyper parameters {{{
 hp = {}
 # Data size on the solution u
-hp["N_u"] = 50
+hp["N_u"] = 2000
 # Collocation points size, where we’ll check for f = 0
 hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]

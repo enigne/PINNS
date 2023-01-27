@@ -19,7 +19,7 @@ tf.random.set_seed(1234)
 # Hyper parameters {{{
 hp = {}
 # Data size on the solution u
-hp["N_u"] = 50
+hp["N_u"] = 2000
 # Collocation points size, where we’ll check for f = 0
 hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 5 hidden layer of 20-width, 1-sized output [u]
@@ -47,22 +47,27 @@ class HBedDNN(NeuralNetwork): #{{{
         self.x_f = self.tensor(X_f[:, 0:1])
         self.y_f = self.tensor(X_f[:, 1:2])
 
-    # set geometry as a function
-    def geometry_model(self, X):
+    # constrain surface gradient
+    def surface_gradient(self, X):
         x = X[:, 0:1]
         y = X[:, 1:2]
-        
-        # load the range
-        xmax, ymax = self.ub
-        xmin, ymin = self.lb
-        hmax = self.hmax
-        hmin = self.hmin
-        
-        # ice shelf 
-        H = hmax + (hmin-hmax)*(y-ymin)/(ymax-ymin) + 0.1*(hmin-hmax)*(x-xmin)/(xmax-xmin)
-        bed = 20 - self.rhoi/self.rhow*H
-        return H, bed
-    
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(x)
+            tape.watch(y)
+            Xtemp = tf.concat([x, y], axis=1)
+
+            UV = self.model(Xtemp)
+            u = UV[:, 0:1]
+            v = UV[:, 1:2]
+
+        u_x = tape.gradient(u, x)
+        v_x = tape.gradient(v, x)
+        u_y = tape.gradient(u, y)
+        v_y = tape.gradient(v, y)
+        del tape
+
+        return u, v, u_x, v_x, u_y, v_y
+
     def loss(self, hb, hb_pred):
         h0 = hb[:, 0:1]
         b0 = hb[:, 1:2]
@@ -72,7 +77,6 @@ class HBedDNN(NeuralNetwork): #{{{
         mse_h = tf.reduce_mean(tf.square(h0 - h0_pred))
         mse_b = tf.reduce_mean(tf.square(b0 - b0_pred))
 
-#        tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mse_f1    {mse_f1}    mse_f2    {mse_f2}")
         return mse_h+mse_b
 
     def predict(self, X_star):
@@ -86,7 +90,7 @@ class HBedDNN(NeuralNetwork): #{{{
 # set the path
 repoPath = "."
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-path = os.path.join(appDataPath, "SSA2D.mat")
+path = os.path.join(appDataPath, "SSA2D_nofriction.mat")
 x, y, X_star, u_star, X_f, xub, xlb, uub, ulb = prep_H_bed(path, hp["N_f"])
 # Creating the model and training
 logger = Logger(hp)

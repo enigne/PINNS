@@ -84,9 +84,9 @@ class SSAInformedNN(NeuralNetwork): #{{{
         Hb = self.H_bed_model(X)
         H = Hb[:, 0:1]
         b = Hb[:, 1:2]
-        hx = Hb[:, 2:3]
-        hy = Hb[:, 3:4]
-        return H, b, hx, hy
+        #hx = Hb[:, 2:3]
+        #hy = Hb[:, 3:4]
+        return H, b#, hx, hy
 
     # Decomposes the multi-output into the x and y coordinates
     def uvx_model(self, X):
@@ -126,9 +126,9 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
             # get ice thickness and bed
             #H, bed = self.geometry_model(X_f)
-            H, bed, h_x, h_y = self.geometry_NN(X_f)
-           # H, bed = self.geometry_NN(X_f)
-           # h = H + bed
+            #H, bed, h_x, h_y = self.geometry_NN(X_f)
+            H, bed = self.geometry_NN(X_f)
+            h = H + bed
 
             # Getting the prediction
             u, v, u_x, v_x, u_y, v_y = self.uvx_model(X_f)
@@ -148,8 +148,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
         sigma22 = tape.gradient(B22, self.y_f)
 
         # surface gradient
-        #h_x = tape.gradient(h, self.x_f)
-        #h_y = tape.gradient(h, self.y_f)
+        h_x = tape.gradient(h, self.x_f)
+        h_y = tape.gradient(h, self.y_f)
 
         # Letting the tape go
         del tape
@@ -188,7 +188,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
 # set the path
 repoPath = "."
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-path = os.path.join(appDataPath, "SSA2D_nocalving.mat")
+path = os.path.join(appDataPath, "SSA2D_nofriction.mat")
 # load the data
 x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, xub, xlb, uub, ulb = prep_data(path, hp["N_u"], hp["N_f"])
 
@@ -197,7 +197,7 @@ logger = Logger(hp)
 pinn = SSAInformedNN(hp, logger, X_f, 
         xub, xlb, uub, ulb, 
         eta=1.8157e8, 
-        geoDataNN="./Models/SheetShelf_H_bed/")
+        geoDataNN="./Models/H_bed/")
 
 # error function for logger
 def error():
