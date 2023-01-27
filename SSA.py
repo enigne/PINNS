@@ -84,7 +84,9 @@ class SSAInformedNN(NeuralNetwork): #{{{
         Hb = self.H_bed_model(X)
         H = Hb[:, 0:1]
         b = Hb[:, 1:2]
-        return H, b
+        hx = Hb[:, 2:3]
+        hy = Hb[:, 3:4]
+        return H, b, hx, hy
 
     # Decomposes the multi-output into the x and y coordinates
     def uvx_model(self, X):
@@ -124,8 +126,9 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
             # get ice thickness and bed
             #H, bed = self.geometry_model(X_f)
-            H, bed = self.geometry_NN(X_f)
-            h = H + bed
+            H, bed, h_x, h_y = self.geometry_NN(X_f)
+           # H, bed = self.geometry_NN(X_f)
+           # h = H + bed
 
             # Getting the prediction
             u, v, u_x, v_x, u_y, v_y = self.uvx_model(X_f)
@@ -145,16 +148,16 @@ class SSAInformedNN(NeuralNetwork): #{{{
         sigma22 = tape.gradient(B22, self.y_f)
 
         # surface gradient
-        h_x = tape.gradient(h, self.x_f)
-        h_y = tape.gradient(h, self.y_f)
+        #h_x = tape.gradient(h, self.x_f)
+        #h_y = tape.gradient(h, self.y_f)
 
         # Letting the tape go
         del tape
-        u_norm = (u**2+v**2+1.0e-30)**0.5
-        alpha = self.C**2 * (u_norm)**(1.0/self.n - 1)
+        u_norm = (u**2+v**2)**0.5
+        alpha = self.C**2 * (u_norm)**(1.0/self.n)
 
-        f1 = sigma11 + sigma12 - alpha*u - self.rhoi*self.g*H*h_x
-        f2 = sigma21 + sigma22 - alpha*v - self.rhoi*self.g*H*h_y
+        f1 = sigma11 + sigma12 - alpha*u/(u_norm+1e-10) - self.rhoi*self.g*H*h_x
+        f2 = sigma21 + sigma22 - alpha*v/(u_norm+1e-10) - self.rhoi*self.g*H*h_y
 
         return f1, f2
 
@@ -185,13 +188,16 @@ class SSAInformedNN(NeuralNetwork): #{{{
 # set the path
 repoPath = "."
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-path = os.path.join(appDataPath, "SSA2D_nofriction.mat")
+path = os.path.join(appDataPath, "SSA2D_nocalving.mat")
 # load the data
 x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, xub, xlb, uub, ulb = prep_data(path, hp["N_u"], hp["N_f"])
 
 # Creating the model and training
 logger = Logger(hp)
-pinn = SSAInformedNN(hp, logger, X_f, xub, xlb, uub, ulb, eta=1.8157e8, geoDataNN="./Models/H_bed/")
+pinn = SSAInformedNN(hp, logger, X_f, 
+        xub, xlb, uub, ulb, 
+        eta=1.8157e8, 
+        geoDataNN="./Models/SheetShelf_H_bed/")
 
 # error function for logger
 def error():
