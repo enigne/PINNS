@@ -31,7 +31,7 @@ hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 500
+hp["nt_epochs"] = 50
 hp["nt_lr"] = 0.8
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
@@ -208,7 +208,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
             B12 = etaH*(  u_y +   v_x)
 
             # friction
-            C = self.C_model(X_f)
+            #C = self.C_model(X_f)
+            C = 200.0
 
         # Getting the other derivatives
         sigma11 = tape.gradient(B11, self.x_f)
@@ -223,11 +224,11 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         # Letting the tape go
         del tape
-        u_norm = (u**2+v**2+1.0e-30)**0.5
-        alpha = C**2 * (u_norm)**(1.0/self.n - 1)
+        u_norm = (u**2+v**2)**0.5
+        alpha = C**2 * (u_norm)**(1.0/self.n)
 
-        f1 = sigma11 + sigma12 - alpha*u - self.rhoi*self.g*H*h_x
-        f2 = sigma21 + sigma22 - alpha*v - self.rhoi*self.g*H*h_y
+        f1 = sigma11 + sigma12 - alpha*u/(u_norm+1e-10) - self.rhoi*self.g*H*h_x
+        f2 = sigma21 + sigma22 - alpha*v/(u_norm+1e-10) - self.rhoi*self.g*H*h_y
 
         return f1, f2
 
@@ -277,7 +278,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
 # set the path
 repoPath = "/totten_1/chenggong/PINNs/"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-path = os.path.join(appDataPath, "SSA2D_friction.mat")
+path = os.path.join(appDataPath, "SSA2D_nocalving.mat")
 # load the data
 x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb = prep_Helheim_data(path, hp["N_u"], hp["N_f"])
 
@@ -288,7 +289,7 @@ pinn = SSAInformedNN(hp, logger, X_f,
         X_cf, n_cf,
         xub, xlb, uub, ulb, 
         eta=1.8157e8, 
-        geoDataNN="./Models/H_bed/", 
+        geoDataNN="./Models/SheetShelf_H_bed/", 
         FrictionCNN="./Models/C_constant/")
 
 # error function for logger
@@ -302,7 +303,7 @@ logger.set_error_fn(error)
 pinn.fit(X_bc, u_bc)
 
 # save
-pinn.model.save("./Models/SSA2D_friction_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
+#pinn.model.save("./Models/SSA2D_friction_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
 
 # plot
 plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub)

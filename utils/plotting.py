@@ -407,7 +407,6 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax = axs[0][0]
     im = ax.imshow(ux, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
-            vmin=-100, vmax=200,
             origin='lower', aspect='auto')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -418,7 +417,6 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax = axs[0][1]
     im = ax.imshow(uy, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
-            vmin=0, vmax=1200,
             origin='lower', aspect='auto')
     # ax.set_xlabel('x')
     # ax.set_ylabel('y')
@@ -450,7 +448,6 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax = axs[1][0]
     im = ax.imshow(u_nn, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
-            vmin=-100, vmax=200,
             origin='lower', aspect='auto')
     # ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -461,7 +458,6 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax = axs[1][1]
     im = ax.imshow(v_nn, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
-            vmin=0, vmax=1200,
             origin='lower', aspect='auto')
     # ax.set_xlabel('x')
     # ax.set_ylabel('y')
