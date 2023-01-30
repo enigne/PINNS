@@ -36,6 +36,8 @@ hp["nt_lr"] = 0.8
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
 hp["use_tfp"] = False
+# Record the history
+hp["save_history"] = True
 #}}}
 class SSAInformedNN(NeuralNetwork): #{{{
     def __init__(self, hp, logger, X_f, 
@@ -208,8 +210,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
             B12 = etaH*(  u_y +   v_x)
 
             # friction
-            #C = self.C_model(X_f)
-            C = 200.0
+            C = self.C_model(X_f)
+            #C = 200.0
 
         # Getting the other derivatives
         sigma11 = tape.gradient(B11, self.x_f)

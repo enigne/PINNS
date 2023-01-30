@@ -4,7 +4,10 @@ md=triangle(model(),'./Exp/Square.exp',10000.);
 md=parameterize(md,'./Par/SquareSheetShelf.par');
 md=setflowequation(md,'SSA','all');
 md=SetMarineIceSheetBC(md,'./Exp/SquareFront.exp');
-md.friction.coefficient = 20*ones(md.mesh.numberofvertices,1);
+L = 5e5;
+md.friction.coefficient = ( 15+5*(sin(2*pi*md.mesh.x/L).*cos(2*pi*md.mesh.y/L)));
+md.friction.p = 3*ones(md.mesh.numberofelements,1);
+md.friction.q = zeros(md.mesh.numberofelements,1);
 md.mask.ocean_levelset = ones(md.mesh.numberofvertices,1);
 
 md.cluster=generic('name',oshostname(),'np',4);

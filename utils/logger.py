@@ -17,6 +17,10 @@ class Logger(object):
         self.start_time = time.time()
         self.prev_time = self.start_time
         self.frequency = hp["log_frequency"]
+        
+        self.save_history = hp["save_history"] if "save_history" in hp.keys() else False
+        self.loss_history = []
+        self.test_history = []
 
     def get_epoch_duration(self):
         now = time.time()
@@ -43,6 +47,13 @@ class Logger(object):
             print(model.summary())
 
     def log_train_epoch(self, epoch, loss, custom="", is_iter=False):
+        if self.save_history:
+            if is_iter:
+                self.loss_history.append(loss)
+            else:
+                self.loss_history.append(loss.numpy())
+            self.test_history.append(self.get_error_u())
+
         if epoch % self.frequency == 0:
             name = 'nt_epoch' if is_iter else 'tf_epoch'
             print(f"{name} = {epoch:6d}  " +
