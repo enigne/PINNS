@@ -26,12 +26,12 @@ hp["N_f"] = 1000
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 #hp["C_layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 2000
+hp["tf_epochs"] = 4000
 hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 1000
+hp["nt_epochs"] = 200
 hp["nt_lr"] = 0.8
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
@@ -116,9 +116,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         Hb = self.H_bed_model(X)
         H = Hb[:, 0:1]
         b = Hb[:, 1:2]
-#        hx = Hb[:, 2:3]
- #       hy = Hb[:, 3:4]
-        return H, b#, hx, hy
+        return H, b
 
     # get the velocity and derivative information
     def uvx_model(self, X):
@@ -211,7 +209,6 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
             # friction
             C = self.C_model(X_f)
-            #C = 200.0
 
         # Getting the other derivatives
         sigma11 = tape.gradient(B11, self.x_f)
@@ -229,8 +226,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
         u_norm = (u**2+v**2)**0.5
         alpha = C**2 * (u_norm)**(1.0/self.n)
 
-        f1 = sigma11 + sigma12 - alpha*u/(u_norm+1e-10) - self.rhoi*self.g*H*h_x
-        f2 = sigma21 + sigma22 - alpha*v/(u_norm+1e-10) - self.rhoi*self.g*H*h_y
+        f1 = sigma11 + sigma12 - alpha*u/(u_norm+1e-30) - self.rhoi*self.g*H*h_x
+        f2 = sigma21 + sigma22 - alpha*v/(u_norm+1e-30) - self.rhoi*self.g*H*h_y
 
         return f1, f2
 
@@ -257,10 +254,10 @@ class SSAInformedNN(NeuralNetwork): #{{{
 #                    1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v_bc - v_bc_pred))
         #mse_C_bc = tf.reduce_mean(tf.square(C_bc - C_bc_pred))
 
-        mse_u = 1e-8*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
-        mse_v = 1e-8*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
-        mse_f1 = 1e-8*tf.reduce_mean(tf.square(f1_pred))
-        mse_f2 = 1e-8*tf.reduce_mean(tf.square(f2_pred))
+        mse_u = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
+        mse_f1 = 1e-4*tf.reduce_mean(tf.square(f1_pred))
+        mse_f2 = 1e-4*tf.reduce_mean(tf.square(f2_pred))
         mse_fc1 = 0.0 #1e-10*tf.reduce_mean(tf.square(fc1_pred))
         mse_fc2 = 0.0 #1e-10*tf.reduce_mean(tf.square(fc2_pred))
 
@@ -305,7 +302,7 @@ logger.set_error_fn(error)
 pinn.fit(X_bc, u_bc)
 
 # save
-#pinn.model.save("./Models/SSA2D_friction_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
+pinn.model.save("./Models/SSA2D_nocalving_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
 
 # plot
 plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub)
