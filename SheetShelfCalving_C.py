@@ -65,7 +65,7 @@ class FrictionCDNN(NeuralNetwork): #{{{
 # set the path
 repoPath = "/totten_1/chenggong/PINNs/"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-path = os.path.join(appDataPath, "SSA2D_friction.mat")
+path = os.path.join(appDataPath, "SSA2D_nocalving.mat")
 x, y, X_star, u_star, X_f, xub, xlb, uub, ulb = prep_Helheim_C(path)
 # Creating the model and training
 logger = Logger(hp)
@@ -81,14 +81,14 @@ logger.set_error_fn(error)
 pinn.fit(X_star, u_star)
 
 # save the weights
-pinn.model.save("./Models/C_constant/")
+pinn.model.save("./Models/SheetShelf_C/")
 
 # plot
 plot_C_train(pinn, X_star, u_star, xlb, xub)
 
 # test load
 pinn2 = FrictionCDNN(hp, logger, X_f, xub, xlb, uub, ulb)
-pinn2.model = tf.keras.models.load_model('./Models/C_constant/')
+pinn2.model = tf.keras.models.load_model('./Models/SheetShelf_C/')
 
 # plot
 plot_C_train(pinn2, X_star, u_star, xlb, xub)

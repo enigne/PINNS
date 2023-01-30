@@ -292,7 +292,7 @@ pinn = SSAInformedNN(hp, logger, X_f,
         xub, xlb, uub, ulb, 
         eta=1.8157e8, 
         geoDataNN="./Models/SheetShelf_H_bed/", 
-        FrictionCNN="./Models/C_constant/")
+        FrictionCNN="./Models/SheetShelf_C/")
 
 # error function for logger
 def error():
