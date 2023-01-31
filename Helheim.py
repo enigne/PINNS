@@ -26,7 +26,7 @@ hp["N_f"] = 1000
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 #hp["C_layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 1000
+hp["tf_epochs"] = 5000
 hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
@@ -35,6 +35,9 @@ hp["nt_epochs"] = 0
 hp["nt_lr"] = 0.8
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
+hp["use_tfp"] = False
+# Record the history
+hp["save_history"] = True
 #}}}
 class SSAInformedNN(NeuralNetwork): #{{{
     def __init__(self, hp, logger, X_f, 
@@ -109,23 +112,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         if geoDataNN: 
             self.H_bed_model = tf.keras.models.load_model(geoDataNN)
 
-
-    # set geometry as a function
-    def geometry_model(self, X):
-        x = X[:, 0:1]
-        y = X[:, 1:2]
-        
-        # load the range
-        xmax, ymax = self.ub
-        xmin, ymin = self.lb
-        hmax = self.hmax
-        hmin = self.hmin
-        
-        # ice shelf 
-        H = hmax + (hmin-hmax)*(y-ymin)/(ymax-ymin) + 0.1*(hmin-hmax)*(x-xmin)/(xmax-xmin)
-        bed = 20 - self.rhoi/self.rhow*H
-        return H, bed
-
+    @tf.function
     def geometry_NN(self, X):
         Hb = self.H_bed_model(X)
         H = Hb[:, 0:1]
@@ -133,6 +120,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         return H, b
 
     # get the velocity and derivative information
+    @tf.function
     def uvx_model(self, X):
         x = X[:, 0:1]
         y = X[:, 1:2]
@@ -153,7 +141,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         return u, v, u_x, v_x, u_y, v_y
 
-    # the multi-output into the x and y coordinates
+    # Calving front condition
+    @tf.function
     def cf_model (self, X, n):
         x = X[:, 0:1]
         y = X[:, 1:2]
@@ -192,6 +181,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         return fc1, fc2
 
     # The actual PINN
+    @tf.function
     def f_model(self):
         # viscosity
         eta = self.eta
@@ -207,6 +197,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
             X_f = tf.concat([self.x_f, self.y_f], axis=1)
 
             # get ice thickness and bed
+            #H, bed, h_x, h_y = self.geometry_NN(X_f)
             H, bed = self.geometry_NN(X_f)
             h = H + bed
 
@@ -229,21 +220,22 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         sigma21 = tape.gradient(B12, self.x_f)
         sigma22 = tape.gradient(B22, self.y_f)
-
+                
         # surface gradient
         h_x = tape.gradient(h, self.x_f)
         h_y = tape.gradient(h, self.y_f)
 
         # Letting the tape go
         del tape
-        u_norm = (u**2+v**2+1.0e-30)**0.5
-        alpha = C**2 * (u_norm)**(1.0/self.n - 1)
+        u_norm = (u**2+v**2)**0.5
+        alpha = C**2 * (u_norm)**(1.0/self.n)
 
-        f1 = sigma11 + sigma12 - alpha*u - self.rhoi*self.g*H*h_x
-        f2 = sigma21 + sigma22 - alpha*v - self.rhoi*self.g*H*h_y
+        f1 = sigma11 + sigma12 - alpha*u/(u_norm+1e-30) - self.rhoi*self.g*H*h_x
+        f2 = sigma21 + sigma22 - alpha*v/(u_norm+1e-30) - self.rhoi*self.g*H*h_y
 
         return f1, f2
 
+    @tf.function
     def loss(self, uv, uv_pred):
         u0 = uv[:, 0:1]
         v0 = uv[:, 1:2]
@@ -257,34 +249,31 @@ class SSAInformedNN(NeuralNetwork): #{{{
         fc1_pred, fc2_pred = self.cf_model(self.X_cf, self.n_cf)
 
         # B.C.
-        # Dirichlet on X_bc
-#        u_bc = self.u_bc[:,0:1]
-#        v_bc = self.u_bc[:,1:2]
-#        #C_bc = self.u_bc[:,2:3]
-#        #C_bc_pred = self.C_model(self.X_bc)
-#        u_bc_pred, v_bc_pred, u_x_bc_pred, v_x_bc_pred, u_y_bc_pred, v_y_bc_pred = self.uvx_model(self.X_bc)
-#        mse_uv_bc = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u_bc - u_bc_pred)) + \
-#                    1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v_bc - v_bc_pred))
-        #mse_C_bc = tf.reduce_mean(tf.square(C_bc - C_bc_pred))
+        mse_u = 1e-4*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = 1e-4*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
 
-        mse_u = 1e-8*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
-        mse_v = 1e-8*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
-        mse_f1 = 1e-12*tf.reduce_mean(tf.square(f1_pred))
-        mse_f2 = 1e-12*tf.reduce_mean(tf.square(f2_pred))
-        mse_fc1 = 0.0*1e-14*tf.reduce_mean(tf.square(fc1_pred))
-        mse_fc2 = 0.0*1e-14*tf.reduce_mean(tf.square(fc2_pred))
+        # PDE residual
+        mse_f1 = 1e-8*tf.reduce_mean(tf.square(f1_pred))
+        mse_f2 = 1e-8*tf.reduce_mean(tf.square(f2_pred))
+        mse_fc1 = 1e-14*tf.reduce_mean(tf.square(fc1_pred))
+        mse_fc2 = 1e-14*tf.reduce_mean(tf.square(fc2_pred))
 
         #tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mse_f1    {mse_f1}     mse_f2    {mse_f2}     mse_fc1    {mse_fc1}    mse_fc2     {mse_fc2}")
         return mse_u + mse_v + \
                 mse_f1 + mse_f2 + \
                 mse_fc1 + mse_fc2
-              #  + mse_C_bc
 
     def predict(self, X_star):
         h_pred = self.model(X_star)
         u_pred = h_pred[:, 0:1]
         v_pred = h_pred[:, 1:2]
         return u_pred.numpy(), v_pred.numpy()
+
+    @tf.function
+    def test_error(self, X_star, u_star):
+        h_pred = self.model(X_star)
+        return  tf.math.reduce_euclidean_norm(h_pred - u_star[:,0:2]) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
+
     #}}}
 
 # set the path
@@ -306,13 +295,17 @@ pinn = SSAInformedNN(hp, logger, X_f,
 
 # error function for logger
 def error():
-    u_pred, v_pred = pinn.predict(X_star)
-    return (np.linalg.norm(u_star[:,0:1] - u_pred, 2)+np.linalg.norm(u_star[:,1:2] - v_pred, 2)) / np.linalg.norm(u_star[:,0:2], 2)
+    return pinn.test_error(X_star, u_star)
+#    u_pred, v_pred = pinn.predict(X_star)
+#    return (np.linalg.norm(u_star[:,0:1] - u_pred, 2)+np.linalg.norm(u_star[:,1:2] - v_pred, 2)) / np.linalg.norm(u_star[:,0:2], 2)
 logger.set_error_fn(error)
 
 # train the model
-pinn.fit(X_star, u_star)
-#pinn.fit(X_bc, u_bc)
+#pinn.fit(X_star, u_star)
+pinn.fit(X_bc, u_bc)
+
+# save
+#pinn.model.save("./Models/SSA2D_friction_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
 
 # plot
 plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub)

@@ -400,7 +400,7 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
 #    hxy = (hx**2+hy**2)**0.5
 
     yts = 3600*24*365
-    X, Y = np.meshgrid(np.linspace(xlb[0],xub[0]), np.linspace(xlb[1],xub[1]))
+    X, Y = np.meshgrid(np.linspace(xlb[0],xub[0],200), np.linspace(xlb[1],xub[1], 200))
     ux = yts*griddata(X_star, u_star[:,0].flatten(), (X, Y), method='cubic')
     uy = yts*griddata(X_star, u_star[:,1].flatten(), (X, Y), method='cubic')
     u_nn = yts*griddata(X_star, u_pred[:,0].flatten(), (X, Y), method='cubic')
@@ -424,7 +424,7 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax.set_ylabel('y')
     ax.set_title('obs u')
     fig.colorbar(im, ax=ax, shrink=1)
-    # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*', markersize = 2, clip_on = False)
+#    ax.plot(pinn.X_cf[:,0], pinn.X_cf[:,1], 'k*', markersize = 2, clip_on = False)
 
     ax = axs[0][1]
     im = ax.imshow(uy, interpolation='nearest', cmap='rainbow',
@@ -434,6 +434,7 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     # ax.set_ylabel('y')
     ax.set_title('obs v')
     fig.colorbar(im, ax=ax, shrink=1)
+    #ax.plot(X_f[:,0],X_f[:,1], 'k*', markersize = 2, clip_on = False)
     # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*',  markersize = 2, clip_on = False)
 
     ax = axs[0][2]
@@ -489,6 +490,7 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax = axs[2][0]
     im = ax.imshow(u_nn - ux, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
+            vmin = -100, vmax=100,
             origin='lower', aspect='auto')
     # ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -499,6 +501,7 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax = axs[2][1]
     im = ax.imshow(v_nn - uy, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
+            vmin = -100, vmax=100,
             origin='lower', aspect='auto')
     # ax.set_xlabel('x')
     # ax.set_ylabel('y')
