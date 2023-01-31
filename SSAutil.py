@@ -166,14 +166,15 @@ def prep_Helheim_H_bed(path): #{{{
     # real() is to make it float by default, in case of zeroes
     Exact_H = np.real(data['H'].flatten()[:,None])
     Exact_b = np.real(data['b'].flatten()[:,None])
-    Exact_hx = np.real(data['ssx'].flatten()[:,None])
-    Exact_hy = np.real(data['ssy'].flatten()[:,None])
+#    Exact_hx = np.real(data['ssx'].flatten()[:,None])
+#    Exact_hy = np.real(data['ssy'].flatten()[:,None])
 
     # Preparing the inputs x and y for predictions in one single array, as X_star
     X_star = np.hstack((x.flatten()[:,None], y.flatten()[:,None]))
 
     # Preparing the testing u_star
-    u_star = np.hstack((Exact_H.flatten()[:,None], Exact_b.flatten()[:,None], Exact_hx.flatten()[:,None], Exact_hy.flatten()[:,None]))
+#    u_star = np.hstack((Exact_H.flatten()[:,None], Exact_b.flatten()[:,None], Exact_hx.flatten()[:,None], Exact_hy.flatten()[:,None]))
+    u_star = np.hstack((Exact_H.flatten()[:,None], Exact_b.flatten()[:,None])) 
 
     # Domain bounds: for regularization and generate training set
     xlb = X_star.min(axis=0)
