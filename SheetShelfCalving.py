@@ -26,12 +26,12 @@ hp["N_f"] = 1000
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 #hp["C_layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 2000
+hp["tf_epochs"] = 10000
 hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 1000
+hp["nt_epochs"] = 500
 hp["nt_lr"] = 0.8
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
@@ -85,11 +85,11 @@ class SSAInformedNN(NeuralNetwork): #{{{
         self.lb = xlb
 
         # Dirichlet B.C.
-        self.X_bc = X_bc #self.tensor(X_bc)
+        self.X_bc = self.tensor(X_bc)
         self.u_bc = u_bc
 
         # Calving front
-        self.X_cf = X_cf #self.tensor(X_cf)
+        self.X_cf = self.tensor(X_cf)
         self.n_cf = n_cf
 
         # viscosity
@@ -116,9 +116,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         Hb = self.H_bed_model(X)
         H = Hb[:, 0:1]
         b = Hb[:, 1:2]
-#        hx = Hb[:, 2:3]
- #       hy = Hb[:, 3:4]
-        return H, b#, hx, hy
+        return H, b
 
     # get the velocity and derivative information
     def uvx_model(self, X):
@@ -141,7 +139,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         return u, v, u_x, v_x, u_y, v_y
 
-    # the multi-output into the x and y coordinates
+    # Calving front condition
     def cf_model (self, X, n):
         x = X[:, 0:1]
         y = X[:, 1:2]
@@ -211,7 +209,6 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
             # friction
             C = self.C_model(X_f)
-            #C = 200.0
 
         # Getting the other derivatives
         sigma11 = tape.gradient(B11, self.x_f)
@@ -229,8 +226,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
         u_norm = (u**2+v**2)**0.5
         alpha = C**2 * (u_norm)**(1.0/self.n)
 
-        f1 = sigma11 + sigma12 - alpha*u/(u_norm+1e-10) - self.rhoi*self.g*H*h_x
-        f2 = sigma21 + sigma22 - alpha*v/(u_norm+1e-10) - self.rhoi*self.g*H*h_y
+        f1 = sigma11 + sigma12 - alpha*u/(u_norm+1e-30) - self.rhoi*self.g*H*h_x
+        f2 = sigma21 + sigma22 - alpha*v/(u_norm+1e-30) - self.rhoi*self.g*H*h_y
 
         return f1, f2
 
@@ -244,7 +241,7 @@ class SSAInformedNN(NeuralNetwork): #{{{
         f1_pred, f2_pred = self.f_model()
 
         # Calving on X_cf
-#        fc1_pred, fc2_pred = self.cf_model(self.X_cf, self.n_cf)
+        fc1_pred, fc2_pred = self.cf_model(self.X_cf, self.n_cf)
 
         # B.C.
         # Dirichlet on X_bc
@@ -259,15 +256,15 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         mse_u = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
         mse_v = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
-        mse_f1 = 1e-6*tf.reduce_mean(tf.square(f1_pred))
-        mse_f2 = 1e-6*tf.reduce_mean(tf.square(f2_pred))
-        mse_fc1 = 0.0 #1e-10*tf.reduce_mean(tf.square(fc1_pred))
-        mse_fc2 = 0.0 #1e-10*tf.reduce_mean(tf.square(fc2_pred))
+        mse_f1 = 1e-4*tf.reduce_mean(tf.square(f1_pred))
+        mse_f2 = 1e-4*tf.reduce_mean(tf.square(f2_pred))
+        mse_fc1 = 1e-16*tf.reduce_mean(tf.square(fc1_pred))
+        mse_fc2 = 1e-16*tf.reduce_mean(tf.square(fc2_pred))
 
 #        tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mse_f1    {mse_f1}     mse_f2    {mse_f2}     mse_fc1    {mse_fc1}    mse_fc2     {mse_fc2}")
         return mse_u + mse_v + \
-                mse_f1 + mse_f2 
-              #  mse_fc1 + mse_fc2
+                mse_f1 + mse_f2 + \
+                mse_fc1 + mse_fc2
               #  + mse_C_bc
 
     def predict(self, X_star):
@@ -275,12 +272,18 @@ class SSAInformedNN(NeuralNetwork): #{{{
         u_pred = h_pred[:, 0:1]
         v_pred = h_pred[:, 1:2]
         return u_pred.numpy(), v_pred.numpy()
+
+    @tf.function
+    def test_error(self, X_star, u_star):
+        h_pred = self.model(X_star)
+        return  tf.math.reduce_euclidean_norm(h_pred - u_star[:,0:2]) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
+
     #}}}
 
 # set the path
 repoPath = "/totten_1/chenggong/PINNs/"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-path = os.path.join(appDataPath, "SSA2D_nocalving.mat")
+path = os.path.join(appDataPath, "SSA2D_calving.mat")
 # load the data
 x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb = prep_Helheim_data(path, hp["N_u"], hp["N_f"])
 
@@ -292,12 +295,13 @@ pinn = SSAInformedNN(hp, logger, X_f,
         xub, xlb, uub, ulb, 
         eta=1.8157e8, 
         geoDataNN="./Models/SheetShelf_H_bed/", 
-        FrictionCNN="./Models/C_constant/")
+        FrictionCNN="./Models/SheetShelf_C/")
 
 # error function for logger
 def error():
-    u_pred, v_pred = pinn.predict(X_star)
-    return (np.linalg.norm(u_star[:,0:1] - u_pred, 2)+np.linalg.norm(u_star[:,1:2] - v_pred, 2)) / np.linalg.norm(u_star[:,0:2], 2)
+    return pinn.test_error(X_star, u_star)
+#    u_pred, v_pred = pinn.predict(X_star)
+#    return (np.linalg.norm(u_star[:,0:1] - u_pred, 2)+np.linalg.norm(u_star[:,1:2] - v_pred, 2)) / np.linalg.norm(u_star[:,0:2], 2)
 logger.set_error_fn(error)
 
 # train the model
