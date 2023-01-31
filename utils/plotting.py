@@ -380,6 +380,12 @@ def plot_C_train(pinn, X_star, u_star, xlb, xub): #{{{
     ax.set_title('predict C')
     fig.colorbar(im, ax=ax, shrink=1)
 
+    ax = axs[2][1]
+    ax.plot((pinn.logger.loss_history), label="loss")
+    ax.plot((pinn.logger.test_history), label="test")
+    plt.yscale('log')
+    plt.legend()
+
     plt.show()
     #}}}
 def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{

@@ -19,9 +19,9 @@ tf.random.set_seed(1234)
 # Hyper parameters {{{
 hp = {}
 # Data size on the solution u
-hp["N_u"] = 50
+hp["N_u"] = 2000
 # Collocation points size, where we’ll check for f = 0
-hp["N_f"] = 1000
+hp["N_f"] = 5000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
@@ -30,10 +30,12 @@ hp["tf_lr"] = 0.01
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 10000
+hp["nt_epochs"] = 0
 hp["nt_lr"] = 1.2
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
+# Record the history
+hp["save_history"] = True
 #}}}
 class FrictionCDNN(NeuralNetwork): #{{{
     def __init__(self, hp, logger, X_f, xub, xlb, uub, ulb):
