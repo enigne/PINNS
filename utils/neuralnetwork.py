@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import tensorflow_probability as tfp
+import os
 
 from custom_lbfgs import lbfgs, Struct
 
@@ -30,7 +31,7 @@ class UpScaleLayer(tf.keras.layers.Layer):
 
 # main class of PINNs
 class NeuralNetwork(object):
-    def __init__(self, hp, logger, xub, xlb, uub, ulb):
+    def __init__(self, hp, logger, xub, xlb, uub, ulb, modelPath, reloadModel=False):
 
         layers = hp["layers"]
 
@@ -50,27 +51,34 @@ class NeuralNetwork(object):
         else:
             self.use_tfp = False
 
+        self.modelPath = modelPath
+
         self.dtype = "float64"
         # Descriptive Keras model
         tf.keras.backend.set_floatx(self.dtype)
-        self.model = tf.keras.Sequential()
-        # input layer
-        self.model.add(tf.keras.layers.InputLayer(input_shape=(layers[0],)))
-        # normalization layer
-        self.model.add(MinmaxScaleLayer(xlb, xub))
 
-        # NN layers
-        for width in layers[1:-1]:
+        if reloadModel and os.path.exists(self.modelPath):
+            #load 
+            self.model = tf.keras.models.load_model(modelPath)
+        else:
+            self.model = tf.keras.Sequential()
+            # input layer
+            self.model.add(tf.keras.layers.InputLayer(input_shape=(layers[0],)))
+            # normalization layer
+            self.model.add(MinmaxScaleLayer(xlb, xub))
+
+            # NN layers
+            for width in layers[1:-1]:
+                self.model.add(tf.keras.layers.Dense(
+                    width, activation=tf.nn.tanh,
+                    kernel_initializer="glorot_normal"))
+            # output layer
             self.model.add(tf.keras.layers.Dense(
-                width, activation=tf.nn.tanh,
-                kernel_initializer="glorot_normal"))
-        # output layer
-        self.model.add(tf.keras.layers.Dense(
-                layers[-1], activation=None,
-                kernel_initializer="glorot_normal"))
+                    layers[-1], activation=None,
+                    kernel_initializer="glorot_normal"))
 
-        # denormalization layer
-        self.model.add(UpScaleLayer(ulb, uub))
+            # denormalization layer
+            self.model.add(UpScaleLayer(ulb, uub))
 
         # setup trainable layers
         self.trainableLayers = self.model.layers[1:-1]
@@ -216,11 +224,9 @@ class NeuralNetwork(object):
     def tensor(self, X):
         return tf.convert_to_tensor(X, dtype=self.dtype)
 
-#    def save(self, path, name, mtype='Umodel'):
-#        if hasattr(self, 'model'):
-#            self.model.save(path + name + mtype)
-#        if hasattr(self, 'C_model'):
-#            self.C_model.save(path + name + '/Cmodel')
+    def save(self):
+        if hasattr(self, 'model'):
+            self.model.save(self.modelPath)
 #
 #    def load(self, path, name, mtype='Umodel'):
 #        if hasattr(self, 'model'):
