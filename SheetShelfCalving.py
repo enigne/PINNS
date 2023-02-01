@@ -26,25 +26,32 @@ hp["N_f"] = 1000
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 #hp["C_layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 20000
-hp["tf_lr"] = 0.01
+hp["tf_epochs"] = 10000
+hp["tf_lr"] = 0.001
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 500
+hp["nt_epochs"] = 0
 hp["nt_lr"] = 0.8
 hp["nt_ncorr"] = 50
 hp["log_frequency"] = 10
 hp["use_tfp"] = False
 # Record the history
 hp["save_history"] = True
+# path for loading data and saving models
+repoPath = "/totten_1/chenggong/PINNs/"
+appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
+path = os.path.join(appDataPath, "SSA2D_circleF.mat")
+modelPath = "./Models/SheetCircleF"
+reloadModel = False # reload from previous training
 #}}}
 class SSAInformedNN(NeuralNetwork): #{{{
     def __init__(self, hp, logger, X_f, 
             X_bc, u_bc, X_cf, n_cf, 
             xub, xlb, uub, ulb, 
+            modelPath, reloadModel,
             eta, n=3.0, geoDataNN=None, FrictionCNN=None):
-        super().__init__(hp, logger, xub, xlb, uub[0:2], ulb[0:2])
+        super().__init__(hp, logger, xub, xlb, uub[0:2], ulb[0:2], modelPath, reloadModel=reloadModel)
 
         # friction C model
         if FrictionCNN:
@@ -256,8 +263,8 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
         mse_u = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
         mse_v = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
-        mse_f1 = 1e-4*tf.reduce_mean(tf.square(f1_pred))
-        mse_f2 = 1e-4*tf.reduce_mean(tf.square(f2_pred))
+        mse_f1 = 1e-6*tf.reduce_mean(tf.square(f1_pred))
+        mse_f2 = 1e-6*tf.reduce_mean(tf.square(f2_pred))
         mse_fc1 = 1e-14*tf.reduce_mean(tf.square(fc1_pred))
         mse_fc2 = 1e-14*tf.reduce_mean(tf.square(fc2_pred))
 
@@ -279,11 +286,6 @@ class SSAInformedNN(NeuralNetwork): #{{{
         return  tf.math.reduce_euclidean_norm(h_pred - u_star[:,0:2]) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
 
     #}}}
-
-# set the path
-repoPath = "/totten_1/chenggong/PINNs/"
-appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-path = os.path.join(appDataPath, "SSA2D_calving.mat")
 # load the data
 x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb = prep_Helheim_data(path, hp["N_u"], hp["N_f"])
 
@@ -293,15 +295,14 @@ pinn = SSAInformedNN(hp, logger, X_f,
         X_bc, u_bc,
         X_cf, n_cf,
         xub, xlb, uub, ulb, 
+        modelPath, reloadModel,
         eta=1.8157e8, 
-        geoDataNN="./Models/SheetShelf_H_bed/", 
-        FrictionCNN="./Models/SheetShelf_C/")
+        geoDataNN="./Models/SheetCircleF_H_bed/", 
+        FrictionCNN="./Models/SheetCircleF_C/")
 
 # error function for logger
 def error():
     return pinn.test_error(X_star, u_star)
-#    u_pred, v_pred = pinn.predict(X_star)
-#    return (np.linalg.norm(u_star[:,0:1] - u_pred, 2)+np.linalg.norm(u_star[:,1:2] - v_pred, 2)) / np.linalg.norm(u_star[:,0:2], 2)
 logger.set_error_fn(error)
 
 # train the model
