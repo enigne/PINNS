@@ -26,7 +26,7 @@ hp["N_f"] = 3000
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
 hp["tf_epochs"] = 10000
-hp["tf_lr"] = 0.01
+hp["tf_lr"] = 0.001
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
@@ -41,7 +41,7 @@ hp["save_history"] = True
 repoPath = "/totten_1/chenggong/PINNs/"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
 path = os.path.join(appDataPath, "SSA2D_circleF.mat")
-modelPath = "./Models/SheetCircleF_H_bed"
+modelPath = "./Models/SheetCircleF_H_bed_001rate"
 reloadModel = False # reload from previous training
 #}}}
 class HBedDNN(NeuralNetwork): #{{{

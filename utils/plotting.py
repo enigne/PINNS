@@ -336,7 +336,7 @@ def plot_H_bed_train(pinn, X_star, u_star, xlb, xub): #{{{
     ax = axs[2][2]
     ax.plot((pinn.logger.loss_history), label="loss")
     ax.plot((pinn.logger.test_history), label="test")
-    plt.yscale('log')
+    ax.axes.set_yscale('log')
     plt.legend()
 
     plt.show()
@@ -383,7 +383,7 @@ def plot_C_train(pinn, X_star, u_star, xlb, xub): #{{{
     ax = axs[2][1]
     ax.plot((pinn.logger.loss_history), label="loss")
     ax.plot((pinn.logger.test_history), label="test")
-    plt.yscale('log')
+    ax.axes.set_yscale('log')
     plt.legend()
 
     plt.show()
@@ -540,7 +540,7 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax = axs[2][3]
     ax.plot((pinn.logger.loss_history), label="loss")
     ax.plot((pinn.logger.test_history), label="test")
-    plt.yscale('log')
+    ax.axes.set_yscale('log')
     plt.legend()
 
     plt.show()
