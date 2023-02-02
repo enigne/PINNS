@@ -261,12 +261,12 @@ class SSAInformedNN(NeuralNetwork): #{{{
 #                    1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v_bc - v_bc_pred))
         #mse_C_bc = tf.reduce_mean(tf.square(C_bc - C_bc_pred))
 
-        mse_u = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
-        mse_v = 1e-6*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
+        mse_u = 1e-2*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = 1e-2*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
         mse_f1 = 1e-6*tf.reduce_mean(tf.square(f1_pred))
         mse_f2 = 1e-6*tf.reduce_mean(tf.square(f2_pred))
-        mse_fc1 = 1e-14*tf.reduce_mean(tf.square(fc1_pred))
-        mse_fc2 = 1e-14*tf.reduce_mean(tf.square(fc2_pred))
+        mse_fc1 = 1e-12*tf.reduce_mean(tf.square(fc1_pred))
+        mse_fc2 = 1e-12*tf.reduce_mean(tf.square(fc2_pred))
 
 #        tf.print(f"mse_u {mse_u}    mse_v {mse_v}    mse_f1    {mse_f1}     mse_f2    {mse_f2}     mse_fc1    {mse_fc1}    mse_fc2     {mse_fc2}")
         return mse_u + mse_v + \

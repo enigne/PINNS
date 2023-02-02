@@ -424,7 +424,8 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax.set_ylabel('y')
     ax.set_title('obs u')
     fig.colorbar(im, ax=ax, shrink=1)
-#    ax.plot(pinn.X_cf[:,0], pinn.X_cf[:,1], 'k*', markersize = 2, clip_on = False)
+#    ax.plot(X_star[:,0],X_star[:,1], 'k*', markersize = 2, clip_on = False)
+    ax.plot(pinn.X_cf[:,0], pinn.X_cf[:,1], 'k*', markersize = 2, clip_on = False)
 
     ax = axs[0][1]
     im = ax.imshow(uy, interpolation='nearest', cmap='rainbow',
@@ -434,7 +435,8 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     # ax.set_ylabel('y')
     ax.set_title('obs v')
     fig.colorbar(im, ax=ax, shrink=1)
-    #ax.plot(X_f[:,0],X_f[:,1], 'k*', markersize = 2, clip_on = False)
+    ax.plot(pinn.X_bc[:,0], pinn.X_bc[:,1], 'k*', markersize = 2, clip_on = False)
+ #   ax.plot(X_f[:,0],X_f[:,1], 'k*', markersize = 2, clip_on = False)
     # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*',  markersize = 2, clip_on = False)
 
     ax = axs[0][2]
