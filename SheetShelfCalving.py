@@ -19,14 +19,14 @@ tf.random.set_seed(1234)
 # Hyper parameters {{{
 hp = {}
 # Data size on the solution u
-hp["N_u"] = 1500
+hp["N_u"] = 3000
 # Collocation points size, where we’ll check for f = 0
 hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 #hp["C_layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 10000
+hp["tf_epochs"] = 100000
 hp["tf_lr"] = 0.001
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
@@ -302,7 +302,7 @@ pinn = SSAInformedNN(hp, logger, X_f,
 
 # error function for logger
 def error():
-    return pinn.test_error(X_star, u_star)
+    return pinn.test_error(X_u_train, u_train)
 logger.set_error_fn(error)
 
 # train the model
@@ -313,7 +313,7 @@ pinn.fit(X_bc, u_bc)
 #pinn.model.save("./Models/SSA2D_friction_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
 
 # plot
-plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub)
+plot_Helheim(pinn, X_f, X_u_train, u_train, xlb, xub)
 
 # fit the data
 #pinn.fit(X_u_train, u_train)
