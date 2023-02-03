@@ -313,7 +313,8 @@ pinn.fit(X_bc, u_bc)
 #pinn.model.save("./Models/SSA2D_friction_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
 
 # plot
-plot_Helheim(pinn, X_f, X_u_train, u_train, xlb, xub)
+#plot_Helheim(pinn, X_f, X_u_train, u_train, xlb, xub)
+plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub)
 
 # fit the data
 #pinn.fit(X_u_train, u_train)
