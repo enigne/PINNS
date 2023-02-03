@@ -492,7 +492,7 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax = axs[2][0]
     im = ax.imshow(u_nn - ux, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
-            vmin = -400, vmax=400,
+            #vmin = -400, vmax=400,
             origin='lower', aspect='auto')
     # ax.set_xlabel('x')
     ax.set_ylabel('y')

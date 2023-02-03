@@ -41,7 +41,8 @@ hp["save_history"] = True
 # path for loading data and saving models
 repoPath = "/totten_1/chenggong/PINNs/"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-path = os.path.join(appDataPath, "SSA2D_circleF.mat")
+#path = os.path.join(appDataPath, "SSA2D_circleF.mat")
+path = os.path.join(appDataPath, "SSA2D_segCF.mat")
 modelPath = "./Models/SheetCircleF"
 reloadModel = False # reload from previous training
 #}}}
