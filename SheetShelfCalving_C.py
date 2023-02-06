@@ -2,7 +2,7 @@ import sys
 import os
 import tensorflow as tf
 import numpy as np
-import tensorflow_probability as tfp
+# import tensorflow_probability as tfp
 sys.path.append(".")
 sys.path.append("./utils")
 from custom_lbfgs import *
@@ -33,12 +33,12 @@ hp["tf_eps"] = 1e-1
 hp["nt_epochs"] = 0
 hp["nt_lr"] = 1.2
 hp["nt_ncorr"] = 50
-hp["log_frequency"] = 10
+hp["log_frequency"] = 1000
 hp["use_tfp"] = False
 # Record the history
 hp["save_history"] = True
 # path for loading data and saving models
-repoPath = "/totten_1/chenggong/PINNs/"
+repoPath = "./"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
 path = os.path.join(appDataPath, "SSA2D_circleF.mat")
 modelPath = "./Models/SheetCircleF_C"
@@ -71,26 +71,26 @@ class FrictionCDNN(NeuralNetwork): #{{{
         return C_pred.numpy()
     #}}}
 # training {{{
-# set the path
-x, y, X_star, u_star, X_f, xub, xlb, uub, ulb = prep_Helheim_C(path)
-# Creating the model and training
-logger = Logger(hp)
-pinn = FrictionCDNN(hp, logger, X_f, xub, xlb, uub, ulb, modelPath, reloadModel)
+# # set the path
+# x, y, X_star, u_star, X_f, xub, xlb, uub, ulb = prep_Helheim_C(path)
+# # Creating the model and training
+# logger = Logger(hp)
+# pinn = FrictionCDNN(hp, logger, X_f, xub, xlb, uub, ulb, modelPath, reloadModel)
 
-# error function for logger
-def error():
-    u_pred = pinn.predict(X_star)
-    return (np.linalg.norm(u_star[:,None] - u_pred)) / np.linalg.norm(u_star[:,None])
-logger.set_error_fn(error)
+# # error function for logger
+# def error():
+#     u_pred = pinn.predict(X_star)
+#     return (np.linalg.norm(u_star[:,None] - u_pred)) / np.linalg.norm(u_star[:,None])
+# logger.set_error_fn(error)
 
-# fit the data
-pinn.fit(X_star, u_star)
+# # fit the data
+# pinn.fit(X_star, u_star)
 
-# save the weights
-pinn.save()
+# # save the weights
+# pinn.save()
 
-# plot
-plot_C_train(pinn, X_star, u_star, xlb, xub)
+# # plot
+# plot_C_train(pinn, X_star, u_star, xlb, xub)
 
 ## test load
 #pinn2 = FrictionCDNN(hp, logger, X_f, xub, xlb, uub, ulb)

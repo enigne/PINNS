@@ -2,7 +2,7 @@ import sys
 import os
 import tensorflow as tf
 import numpy as np
-import tensorflow_probability as tfp
+#import tensorflow_probability as tfp
 sys.path.append(".")
 sys.path.append("./utils")
 from custom_lbfgs import *
@@ -38,7 +38,7 @@ hp["use_tfp"] = False
 # Record the history
 hp["save_history"] = True
 # path for loading data and saving models
-repoPath = "/totten_1/chenggong/PINNs/"
+repoPath = "./"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
 path = os.path.join(appDataPath, "SSA2D_circleF.mat")
 modelPath = "./Models/SheetCircleF_H_bed_001rate"
