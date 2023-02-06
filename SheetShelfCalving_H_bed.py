@@ -2,7 +2,6 @@ import sys
 import os
 import tensorflow as tf
 import numpy as np
-#import tensorflow_probability as tfp
 sys.path.append(".")
 sys.path.append("./utils")
 from custom_lbfgs import *
@@ -41,7 +40,7 @@ hp["save_history"] = True
 repoPath = "./"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
 path = os.path.join(appDataPath, "SSA2D_circleF.mat")
-modelPath = "./Models/SheetCircleF_H_bed_001rate"
+modelPath = "./Models/SheetCircleF_H_bed"
 reloadModel = False # reload from previous training
 #}}}
 class HBedDNN(NeuralNetwork): #{{{
@@ -98,27 +97,27 @@ class HBedDNN(NeuralNetwork): #{{{
         return u_pred.numpy(), v_pred.numpy()
     #}}}
 # Training {{{
-# set the path
-x, y, X_star, u_star, X_f, xub, xlb, uub, ulb = prep_Helheim_H_bed(path)
-# Creating the model and training
-logger = Logger(hp)
-pinn = HBedDNN(hp, logger, X_f, xub, xlb, uub[0:2], ulb[0:2], modelPath)
-
-# error function for logger
-def error():
-    u_pred, v_pred = pinn.predict(X_star)
-    return (np.linalg.norm(u_star[:,0:1] - u_pred, 2)+np.linalg.norm(u_star[:,1:2] - v_pred, 2)) / np.linalg.norm(u_star[:,0:2], 2)
-logger.set_error_fn(error)
-
-# fit the data
-pinn.fit(X_star, u_star)
-
-# save the weights
-pinn.save()
-
-# plot
-plot_H_bed_train(pinn, X_star, u_star, xlb, xub)
-
+## set the path
+#x, y, X_star, u_star, X_f, xub, xlb, uub, ulb = prep_Helheim_H_bed(path)
+## Creating the model and training
+#logger = Logger(hp)
+#pinn = HBedDNN(hp, logger, X_f, xub, xlb, uub[0:2], ulb[0:2], modelPath)
+#
+## error function for logger
+#def error():
+#    u_pred, v_pred = pinn.predict(X_star)
+#    return (np.linalg.norm(u_star[:,0:1] - u_pred, 2)+np.linalg.norm(u_star[:,1:2] - v_pred, 2)) / np.linalg.norm(u_star[:,0:2], 2)
+#logger.set_error_fn(error)
+#
+## fit the data
+#pinn.fit(X_star, u_star)
+#
+## save the weights
+#pinn.save()
+#
+## plot
+#plot_H_bed_train(pinn, X_star, u_star, xlb, xub)
+#
 ## test load
 #pinn2 = HBedDNN(hp, logger, X_f, xub, xlb, uub, ulb)
 #pinn2.model = tf.keras.models.load_model(modelSavePath)
