@@ -11,7 +11,7 @@ x= md.mesh.x;
 y= md.mesh.y;
 % make cx and cy to row vectors
 cy = L/2;
-cx = L-L/4;
+cx = L;
 radius = L/8;
 
 numberofvertices = md.mesh.numberofvertices;
