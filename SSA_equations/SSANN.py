@@ -12,7 +12,9 @@ class SSAInformedNN(NeuralNetwork): #{{{
             X_bc, u_bc, X_cf, n_cf, 
             xub, xlb, uub, ulb, 
             modelPath, reloadModel,
-            eta, n=3.0, geoDataNN=None, FrictionCNN=None):
+            eta, n=3.0, 
+            loss_weights=[1e-2, 1e-6, 1e-10],
+            geoDataNN=None, FrictionCNN=None):
         super().__init__(hp, logger, xub, xlb, uub[0:2], ulb[0:2], modelPath, reloadModel=reloadModel)
 
         # friction C model
@@ -49,6 +51,9 @@ class SSAInformedNN(NeuralNetwork): #{{{
             self.trainableLayers = (self.model.layers[1:-1]) + (self.C_model.layer[1:-1])
             self.trainableVariables = self.model.trainable_variables + self.C_model.trainable_variables
 
+        # weights of the loss functions
+        self.loss_weights = tf.constant(loss_weights, dtype=self.dtype)
+            
         # scaling factors
         self.ub = tf.constant(xub, dtype=self.dtype)
         self.lb = tf.constant(xlb, dtype=self.dtype)
@@ -216,12 +221,12 @@ class SSAInformedNN(NeuralNetwork): #{{{
         fc1_pred, fc2_pred = self.cf_model(self.X_cf, self.n_cf)
 
         # misfits
-        mse_u = 1e-2*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
-        mse_v = 1e-2*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
-        mse_f1 = 1e-6*tf.reduce_mean(tf.square(f1_pred))
-        mse_f2 = 1e-6*tf.reduce_mean(tf.square(f2_pred))
-        mse_fc1 = 1e-10*tf.reduce_mean(tf.square(fc1_pred))
-        mse_fc2 = 1e-10*tf.reduce_mean(tf.square(fc2_pred))
+        mse_u = self.loss_weights[0]*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = self.loss_weights[0]*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
+        mse_f1 = self.loss_weights[1]*tf.reduce_mean(tf.square(f1_pred))
+        mse_f2 = self.loss_weights[1]*tf.reduce_mean(tf.square(f2_pred))
+        mse_fc1 = self.loss_weights[2]*tf.reduce_mean(tf.square(fc1_pred))
+        mse_fc2 = self.loss_weights[2]*tf.reduce_mean(tf.square(fc2_pred))
 
         return mse_u + mse_v + \
                 mse_f1 + mse_f2 + \
