@@ -243,3 +243,90 @@ class SSAInformedNN(NeuralNetwork): #{{{
         h_pred = self.model(X_star)
         return  tf.math.reduce_euclidean_norm(h_pred - u_star[:,0:2]) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
     #}}}
+    
+    
+class HBedDNN(NeuralNetwork): #{{{
+    def __init__(self, hp, logger, X_f, xub, xlb, uub, ulb, modelPath="./", reloadModel=False):
+        super().__init__(hp, logger, xub, xlb, uub, ulb, modelPath, reloadModel)
+
+        # scaling factors
+        self.ub = tf.constant(xub, dtype=self.dtype)
+        self.lb = tf.constant(xlb, dtype=self.dtype)
+
+        # Separating the collocation coordinates
+        self.x_f = self.tensor(X_f[:, 0:1])
+        self.y_f = self.tensor(X_f[:, 1:2])
+
+    @tf.function
+    def gradient_model(self):
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(self.x_f)
+            tape.watch(self.y_f)
+            Xtemp = tf.concat([self.x_f, self.y_f], axis=1)
+
+            Hb = self.model(Xtemp)
+            H = Hb[:, 0:1]
+            b = Hb[:, 1:2]
+            h = H + b
+
+        h_x = tape.gradient(h, self.x_f)
+        h_y = tape.gradient(h, self.y_f)
+        del tape
+
+        return h_x, h_y
+
+    @tf.function
+    def loss(self, hb, hb_pred):
+        h0 = hb[:, 0:1]
+        b0 = hb[:, 1:2]
+
+        h0_pred = hb_pred[:, 0:1]
+        b0_pred = hb_pred[:, 1:2]
+
+        mse_h = tf.reduce_mean(tf.square(h0 - h0_pred))
+        mse_b = tf.reduce_mean(tf.square(b0 - b0_pred))
+
+        return mse_h+mse_b#+mse_hx+mse_hy
+
+    def predict(self, X_star):
+        h_pred = self.model(X_star)
+        u_pred = h_pred[:, 0:1]
+        v_pred = h_pred[:, 1:2]
+        return u_pred.numpy(), v_pred.numpy()
+    
+    @tf.function
+    def test_error(self, X_star, u_star):
+        h_pred = self.model(X_star)
+        return  tf.math.reduce_euclidean_norm(h_pred - u_star[:,0:2]) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
+    #}}}
+    
+class FrictionCDNN(NeuralNetwork): #{{{
+    def __init__(self, hp, logger, X_f, xub, xlb, uub, ulb, modelPath, reloadModel=False):
+        super().__init__(hp, logger, xub, xlb, uub, ulb, modelPath, reloadModel)
+        
+        # scaling factors
+        self.ub = tf.constant(xub, dtype=self.dtype)
+        self.lb = tf.constant(xlb, dtype=self.dtype)
+
+        # Separating the collocation coordinates
+        self.x_f = self.tensor(X_f[:, 0:1])
+        self.y_f = self.tensor(X_f[:, 1:2])
+        
+    @tf.function
+    def loss(self, C, C_pred):
+
+        mse_C = tf.reduce_mean(tf.square(C - C_pred))
+
+        return mse_C
+
+    def predict(self, X_star):
+        sol_pred = self.model(X_star)
+        C_pred = sol_pred[:, None]
+        return C_pred.numpy()
+    
+    @tf.function
+    def test_error(self, X_star, u_star):
+        h_pred = self.model(X_star)
+        return  tf.math.reduce_euclidean_norm(h_pred - u_star) / tf.math.reduce_euclidean_norm(u_star)
+
+    #}}}
