@@ -25,7 +25,7 @@ hp["N_f"] = 3000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 10000
+hp["tf_epochs"] = 1000
 hp["tf_lr"] = 0.001
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
@@ -33,7 +33,7 @@ hp["tf_eps"] = 1e-1
 hp["nt_epochs"] = 0
 hp["nt_lr"] = 1.2
 hp["nt_ncorr"] = 50
-hp["log_frequency"] = 1000
+hp["log_frequency"] = 100
 hp["use_tfp"] = False
 # Record the history
 hp["save_history"] = True
@@ -63,7 +63,7 @@ class FrictionCDNN(NeuralNetwork): #{{{
 
         mse_C = tf.reduce_mean(tf.square(C0 - C0_pred))
 
-        return mse_C
+        return {"loss": mse_C}
 
     def predict(self, X_star):
         sol_pred = self.model(X_star)
@@ -72,19 +72,19 @@ class FrictionCDNN(NeuralNetwork): #{{{
     #}}}
 # training {{{
 # # set the path
-# x, y, X_star, u_star, X_f, xub, xlb, uub, ulb = prep_Helheim_C(path)
-# # Creating the model and training
-# logger = Logger(hp)
-# pinn = FrictionCDNN(hp, logger, X_f, xub, xlb, uub, ulb, modelPath, reloadModel)
+x, y, X_star, u_star, X_f, xub, xlb, uub, ulb = prep_Helheim_C(path)
+# Creating the model and training
+logger = Logger(hp)
+pinn = FrictionCDNN(hp, logger, X_f, xub, xlb, uub, ulb, modelPath, reloadModel)
 
-# # error function for logger
-# def error():
-#     u_pred = pinn.predict(X_star)
-#     return (np.linalg.norm(u_star[:,None] - u_pred)) / np.linalg.norm(u_star[:,None])
-# logger.set_error_fn(error)
+# error function for logger
+def error():
+    u_pred = pinn.predict(X_star)
+    return (np.linalg.norm(u_star[:,None] - u_pred)) / np.linalg.norm(u_star[:,None])
+logger.set_error_fn(error)
 
-# # fit the data
-# pinn.fit(X_star, u_star)
+# fit the data
+pinn.fit(X_star, u_star)
 
 # # save the weights
 # pinn.save()

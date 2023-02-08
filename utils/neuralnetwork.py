@@ -97,13 +97,13 @@ class NeuralNetwork(object):
     # Defining custom loss
     @tf.function
     def loss(self, u, u_pred):
-        return tf.reduce_mean(tf.square(u - u_pred))
+        return {"loss": tf.reduce_mean(tf.square(u - u_pred))}
 
     @tf.function
     def grad(self, X, u):
         with tf.GradientTape() as tape:
             loss_value = self.loss(u, self.model(X))
-        grads = tape.gradient(loss_value, self.wrap_training_variables())
+        grads = tape.gradient(loss_value["loss"], self.wrap_training_variables())
         return loss_value, grads
 
     def wrap_training_variables(self):
@@ -150,6 +150,80 @@ class NeuralNetwork(object):
 
         return loss_and_flat_grad
 
+    def get_indices(self):
+        ''' 
+            to use tf.dynamic_stitch and tf.dynamic_partition
+        '''
+        shapes = tf.shape_n(self.wrap_training_variables())
+        count = 0
+        stitch_indices = []
+        partition_indices = []
+        for i, shape in enumerate(shapes):
+            n = np.product(shape.numpy())
+            stitch_indices.append(tf.reshape(tf.range(count, count + n, dtype=tf.int32), shape))
+            partition_indices.extend([i] * n)
+            count += n
+        partition_indices = tf.constant(partition_indices)
+        return partition_indices, stitch_indices
+
+    def set_model_parameters(self, params, partition_indices):
+        '''
+            update model parameters 
+        '''
+        shapes = tf.shape_n(self.wrap_training_variables())
+        params = tf.dynamic_partition(params, partition_indices, len(shapes))
+        for i, (shape, param) in enumerate(zip(shapes, params)):
+            self.trainableVariables[i].assign(tf.reshape(param, shape))
+    
+
+    # L-BFGS 
+    @tf.function
+    def tfp_nt_optimization_step(self, params, partition_indices, stitch_indices, X_u, u):
+        '''
+        calculate the gradients also return the value of the loss function
+        '''
+        with tf.GradientTape() as tape:
+            self.set_model_parameters(params, partition_indices)
+            loss_value = self.loss(u, self.model(X_u))
+
+        # compute the gradient
+        grads = tape.gradient(loss_value, self.wrap_training_variables())
+        grad_flat = tf.dynamic_stitch(stitch_indices, grads)
+        
+        return loss_value, grad_flat
+
+    def tfp_nt_optimization(self, X_u, u):
+        self.logger.log_train_opt("tfp-LBFGS")
+        # get the indices
+        partition_indices, stitch_indices = self.get_indices()
+        # counter
+        epoch = tf.Variable(0)
+
+        # a decorator to include saving and printing history
+        def loss_and_grad(params):
+            # the main objective function 
+            loss_value, grads = self.tfp_nt_optimization_step(params, partition_indices, stitch_indices, X_u, u)
+            # save to log and output
+            epoch.assign_add(1)
+            self.logger.log_train_epoch(epoch, loss_value)
+
+            return loss_value, grads
+
+        # initial guess 
+        init_params = tf.dynamic_stitch(stitch_indices, self.wrap_training_variables())
+
+        results = tfp.optimizer.lbfgs_minimize(
+                value_and_gradients_function=loss_and_grad,
+                initial_position=init_params,
+                num_correction_pairs=self.nt_config.nCorrection,
+                max_iterations=self.nt_config.maxIter,
+                f_relative_tolerance=self.nt_config.tolFun,
+                tolerance=1e-16)
+
+        # manually put the final solution back to the model
+        self.set_model_parameters(results.position, partition_indices)
+
+    # ADAM
     def tf_optimization(self, X_u, u):
         self.logger.log_train_opt("Adam")
         for epoch in range(self.tf_epochs):
@@ -166,14 +240,6 @@ class NeuralNetwork(object):
     def nt_optimization(self, X_u, u):
         self.logger.log_train_opt("LBFGS")
         loss_and_flat_grad = self.get_loss_and_flat_grad(X_u, u)
-        #tfp.optimizer.lbfgs_minimize(
-        #        loss_and_flat_grad,
-        #        initial_position=self.get_weights(),
-        #        num_correction_pairs=self.nt_config.nCorrection,
-        #        max_iterations=self.nt_config.maxIter,
-        #        f_relative_tolerance=self.nt_config.tolFun,
-        #        tolerance=self.nt_config.tolFun,
-        #        parallel_iterations=6)
         self.nt_optimization_steps(loss_and_flat_grad)
 
     def nt_optimization_steps(self, loss_and_flat_grad):
@@ -183,7 +249,7 @@ class NeuralNetwork(object):
               lambda epoch, loss, is_iter:
               self.logger.log_train_epoch(epoch, loss, "", is_iter))
 
-    def tfp_nt_optimization(self, X_u, u):
+    def tfp_nt_optimization_old(self, X_u, u):
         self.logger.log_train_opt("tfp-LBFGS")
         loss_and_flat_grad = self.get_loss_and_flat_grad(X_u, u)
         tfp.optimizer.lbfgs_minimize(

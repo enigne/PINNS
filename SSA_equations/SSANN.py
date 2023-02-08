@@ -390,10 +390,9 @@ class SSAAllNN(NeuralNetwork): #{{{
         mse_f2 = self.loss_weights[3]*tf.reduce_mean(tf.square(f2_pred))
 #        mse_fc1 = self.loss_weights[2]*tf.reduce_mean(tf.square(fc1_pred))
 #        mse_fc2 = self.loss_weights[2]*tf.reduce_mean(tf.square(fc2_pred))
-#
-        return mse_u + mse_v + \
-                mse_f1 + mse_f2 + \
-                mse_H + mse_bed + mse_C
+        totalloss = mse_u + mse_v + mse_f1 + mse_f2 + mse_H + mse_bed + mse_C
+        return {"loss": totalloss, "mse_u": mse_u, "mse_v": mse_v, "mse_H": mse_H, 
+                "mse_bed": mse_bed, "mse_C": mse_C, "mse_f1": mse_f1, "mse_f2": mse_f2} 
 
     def predict(self, X_star):
         sol_pred = self.model(X_star)
@@ -479,10 +478,8 @@ class FrictionCDNN(NeuralNetwork): #{{{
         
     @tf.function
     def loss(self, C, C_pred):
-
         mse_C = tf.reduce_mean(tf.square(C - C_pred))
-
-        return mse_C
+        return {"loss": mse_C}
 
     def predict(self, X_star):
         sol_pred = self.model(X_star)

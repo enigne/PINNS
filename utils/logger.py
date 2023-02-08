@@ -2,7 +2,8 @@ import json
 import tensorflow as tf
 import time
 from datetime import datetime
-
+import numpy as np
+from typing import Dict
 
 class Logger(object):
     def __init__(self, hp):
@@ -12,15 +13,18 @@ class Logger(object):
 
         print("TensorFlow version: {}".format(tf.__version__))
         print("Eager execution: {}".format(tf.executing_eagerly()))
-        print("GPU-accerelated: {}".format(tf.test.is_gpu_available()))
+        print("GPU-accerelated: {}".format(tf.config.list_physical_devices('GPU')))
 
         self.start_time = time.time()
         self.prev_time = self.start_time
         self.frequency = hp["log_frequency"]
-        
-        self.save_history = hp["save_history"] if "save_history" in hp.keys() else False
-        self.loss_history = []
-        self.test_history = []
+        self.history_frequency = hp.setdefault('history_frequency', 1)
+        self.save_history = hp.setdefault('save_history', False)
+        self._history = {}
+    
+    @property
+    def history(self) -> Dict[str, np.array]:
+        return self._history
 
     def get_epoch_duration(self):
         now = time.time()
@@ -46,20 +50,22 @@ class Logger(object):
         if model_description:
             print(model.summary())
 
-    def log_train_epoch(self, epoch, loss, custom="", is_iter=False):
+    def log_train_epoch(self, epoch, loss_values, custom="", is_iter=False):
         if self.save_history:
-            if is_iter:
-                self.loss_history.append(loss)
-            else:
-                self.loss_history.append(loss.numpy())
-            self.test_history.append(self.get_error_u())
+            if epoch % self.history_frequency == 0:
+                for name, loss in loss_values.items():
+                    record = self._history.setdefault(name, [])
+                    loss_val = loss.numpy()
+                    record.append(loss_val)
+                test_history = self._history.setdefault("test", [])
+                test_history.append(self.get_error_u())
 
         if epoch % self.frequency == 0:
             name = 'nt_epoch' if is_iter else 'tf_epoch'
             print(f"{name} = {epoch:6d}  " +
                   f"elapsed = {self.get_elapsed()} " +
                   f"(+{self.get_epoch_duration()})  " +
-                  f"loss = {loss:.4e}  " + custom)
+                  f"loss = {loss_values['loss']:.4e}  " + custom)
 
     def log_train_opt(self, name):
         print(f"-- Starting {name} optimization --")
