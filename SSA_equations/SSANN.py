@@ -249,7 +249,7 @@ class SSAAllNN(NeuralNetwork): #{{{
             xub, xlb, uub, ulb, 
             modelPath, reloadModel,
             eta, n=3.0, 
-            loss_weights=[1e-2, 1e-6, 1e-10],
+            loss_weights=[1e-2, 1e-6, 1e-10, 1e-10],
             geoDataNN=None, FrictionCNN=None):
         super().__init__(hp, logger, xub, xlb, uub, ulb, modelPath, reloadModel=reloadModel)
 
@@ -324,7 +324,7 @@ class SSAAllNN(NeuralNetwork): #{{{
             X_f = tf.concat([self.x_f, self.y_f], axis=1)
 
             # Getting the prediction
-            u, v, u_x, v_x, u_y, v_y H, bed, C = self.uvx_model(X_f)
+            u, v, u_x, v_x, u_y, v_y, H, bed, C = self.uvHbC_model(X_f)
             h = H + bed
 
             epsilon = 0.5*eta *(u_x**2 + v_y**2 + 0.25*(u_y+v_x)**2 + u_x*v_y+1.0e-30)**(0.5*(1.0-n)/n)
@@ -396,15 +396,18 @@ class SSAAllNN(NeuralNetwork): #{{{
                 mse_H + mse_bed + mse_C
 
     def predict(self, X_star):
-        h_pred = self.model(X_star)
-        u_pred = h_pred[:, 0:1]
-        v_pred = h_pred[:, 1:2]
-        return u_pred.numpy(), v_pred.numpy()
+        sol_pred = self.model(X_star)
+        u_pred = sol_pred[:, 0:1]
+        v_pred = sol_pred[:, 1:2]
+        H_pred = sol_pred[:, 2:3]
+        bed_pred = sol_pred[:, 3:4]
+        C_pred = sol_pred[:, 4:5]
+        return u_pred.numpy(), v_pred.numpy(), H_pred.numpy(), bed_pred.numpy(), C_pred.numpy()
 
     @tf.function
     def test_error(self, X_star, u_star):
         h_pred = self.model(X_star)
-        return  tf.math.reduce_euclidean_norm(h_pred - u_star[:,0:2]) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
+        return  tf.math.reduce_euclidean_norm(h_pred[:,0:2] - u_star[:,0:2]) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
     #}}}
     
     
