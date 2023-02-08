@@ -49,10 +49,10 @@ class Logger(object):
     def log_train_epoch(self, epoch, loss, custom="", is_iter=False):
         if self.save_history:
             if is_iter:
-                self.loss_history.append(loss)
+                tf.py_function(self.loss_history.append, inp=[loss], Tout=[])
             else:
-                self.loss_history.append(loss.numpy())
-            self.test_history.append(self.get_error_u())
+                tf.py_function(self.loss_history.append, inp=[loss.numpy()], Tout=[])
+            tf.py_function(self.test_history.append, inp=[self.get_error_u()], Tout=[])
 
         if epoch % self.frequency == 0:
             name = 'nt_epoch' if is_iter else 'tf_epoch'
