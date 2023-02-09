@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from scipy.interpolate import griddata
 import numpy as np
+import math
 
 yts = 3600*24*365
 
@@ -692,6 +693,20 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax.plot((pinn.logger.history["test"]), label="test")
     ax.axes.set_yscale('log')
     plt.legend()
+
+    plt.show()
+    #}}}
+def plot_log_history(pinn): #{{{
+
+    n = len(pinn.logger.history.keys())
+    cols = 4
+
+    fig, axs = plt.subplots(math.ceil(n/cols), cols, figsize=(16,12))
+
+    for ax, name in zip(axs.ravel(), pinn.logger.history.keys()):
+        ax.plot((pinn.logger.history[name]), label=name)
+        ax.axes.set_yscale('log')
+        ax.legend(loc="best")
 
     plt.show()
     #}}}
