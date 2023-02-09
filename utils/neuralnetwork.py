@@ -36,22 +36,26 @@ class NeuralNetwork(object):
         layers = hp["layers"]
 
         # Setting up the optimizers with the hyper-parameters
+        # params for L-BFGS
         self.nt_config = Struct()
         self.nt_config.learningRate = hp["nt_lr"]
         self.nt_config.maxIter = hp["nt_epochs"]
         self.nt_config.nCorrection = hp["nt_ncorr"]
         self.nt_config.tolFun = 1.0 * np.finfo(float).eps
+        self.use_tfp = hp.setdefault("use_tfp", False)
+
+        # params for Adam
         self.tf_epochs = hp["tf_epochs"]
         self.tf_optimizer = tf.keras.optimizers.Adam(
             learning_rate=hp["tf_lr"],
             beta_1=hp["tf_b1"],
             epsilon=hp["tf_eps"])
-        if "use_tfp" in hp.keys():
-            self.use_tfp = hp["use_tfp"]
-        else:
-            self.use_tfp = False
 
+        # save the final model to the path
         self.modelPath = modelPath
+
+        # logger
+        self.logger = logger
 
         self.dtype = "float64"
         # Descriptive Keras model
@@ -91,8 +95,6 @@ class NeuralNetwork(object):
             if i > 0:
                 self.sizes_w.append(int(width * layers[i-1]))
                 self.sizes_b.append(int(width))
-
-        self.logger = logger
 
     # Defining custom loss
     @tf.function
@@ -178,7 +180,7 @@ class NeuralNetwork(object):
 
     # L-BFGS 
     @tf.function
-    def tfp_nt_optimization_step(self, params, partition_indices, stitch_indices, X_u, u):
+    def LBFGS_optimization_step(self, params, partition_indices, stitch_indices, X_u, u):
         '''
         calculate the gradients also return the value of the loss function
         '''
@@ -187,13 +189,13 @@ class NeuralNetwork(object):
             loss_value = self.loss(u, self.model(X_u))
 
         # compute the gradient
-        grads = tape.gradient(loss_value, self.wrap_training_variables())
+        grads = tape.gradient(loss_value["loss"], self.wrap_training_variables())
         grad_flat = tf.dynamic_stitch(stitch_indices, grads)
-        
+
         return loss_value, grad_flat
 
-    def tfp_nt_optimization(self, X_u, u):
-        self.logger.log_train_opt("tfp-LBFGS")
+    def LBFGS_optimization(self, X_u, u):
+        self.logger.log_train_opt("tfp-L-BFGS")
         # get the indices
         partition_indices, stitch_indices = self.get_indices()
         # counter
@@ -202,12 +204,12 @@ class NeuralNetwork(object):
         # a decorator to include saving and printing history
         def loss_and_grad(params):
             # the main objective function 
-            loss_value, grads = self.tfp_nt_optimization_step(params, partition_indices, stitch_indices, X_u, u)
+            loss_value, grads = self.LBFGS_optimization_step(params, partition_indices, stitch_indices, X_u, u)
             # save to log and output
             epoch.assign_add(1)
             self.logger.log_train_epoch(epoch, loss_value)
 
-            return loss_value, grads
+            return loss_value["loss"], grads
 
         # initial guess 
         init_params = tf.dynamic_stitch(stitch_indices, self.wrap_training_variables())
@@ -215,23 +217,21 @@ class NeuralNetwork(object):
         results = tfp.optimizer.lbfgs_minimize(
                 value_and_gradients_function=loss_and_grad,
                 initial_position=init_params,
-                num_correction_pairs=self.nt_config.nCorrection,
                 max_iterations=self.nt_config.maxIter,
-                f_relative_tolerance=self.nt_config.tolFun,
                 tolerance=1e-16)
 
         # manually put the final solution back to the model
         self.set_model_parameters(results.position, partition_indices)
 
     # ADAM
-    def tf_optimization(self, X_u, u):
+    def Adam_optimization(self, X_u, u):
         self.logger.log_train_opt("Adam")
         for epoch in range(self.tf_epochs):
             loss_value = self.tf_optimization_step(X_u, u)
             self.logger.log_train_epoch(epoch, loss_value)
 
     @tf.function
-    def tf_optimization_step(self, X_u, u):
+    def Adam_optimization_step(self, X_u, u):
         loss_value, grads = self.grad(X_u, u)
         self.tf_optimizer.apply_gradients(
                 zip(grads, self.wrap_training_variables()))
@@ -271,10 +271,11 @@ class NeuralNetwork(object):
         u = self.tensor(u)
 
         # Optimizing
-        self.tf_optimization(X_u, u)
+        self.Adam_optimization(X_u, u)
 
+        # use LBFGS
         if self.use_tfp:
-            self.tfp_nt_optimization(X_u, u)
+            self.LBFGS_optimization(X_u, u)
         else:
             self.nt_optimization(X_u, u)
 
