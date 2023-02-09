@@ -405,8 +405,8 @@ class SSAAllNN(NeuralNetwork): #{{{
 
     @tf.function
     def test_error(self, X_star, u_star):
-        h_pred = self.model(X_star)
-        return  tf.math.reduce_euclidean_norm(h_pred[:,0:2] - u_star[:,0:2]) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
+        sol_pred = self.model(X_star)
+        return  tf.math.reduce_euclidean_norm(sol_pred[:,0:2] - u_star[:,0:2]) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
     #}}}
 class SSANN_invertC(SSAAllNN): #{{{
     def __init__(self, hp, logger, X_f, 
@@ -463,19 +463,10 @@ class SSANN_invertC(SSAAllNN): #{{{
         return {"loss": totalloss, "mse_u": mse_u, "mse_v": mse_v, "mse_H": mse_H, 
                 "mse_bed": mse_bed, "mse_C": mse_C, "mse_f1": mse_f1, "mse_f2": mse_f2} 
 
-        def predict(self, X_star):
-            sol_pred = self.model(X_star)
-        u_pred = sol_pred[:, 0:1]
-        v_pred = sol_pred[:, 1:2]
-        H_pred = sol_pred[:, 2:3]
-        bed_pred = sol_pred[:, 3:4]
-        C_pred = sol_pred[:, 4:5]
-        return u_pred.numpy(), v_pred.numpy(), H_pred.numpy(), bed_pred.numpy(), C_pred.numpy()
-
     @tf.function
     def test_error(self, X_star, u_star):
-        h_pred = self.model(X_star)
-        return  tf.math.reduce_euclidean_norm(h_pred[:,0:2] - u_star[:,0:2]) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
+        sol_pred = self.model(X_star)
+        return  tf.math.reduce_euclidean_norm(sol_pred[:,4:5] - u_star[:,4:5]) / tf.math.reduce_euclidean_norm(u_star[:,4:5])
     #}}}
     
     
