@@ -25,16 +25,16 @@ hp["N_f"] = 3000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
 hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
-hp["tf_epochs"] = 1000
+hp["tf_epochs"] = 100
 hp["tf_lr"] = 0.001
 hp["tf_b1"] = 0.99
 hp["tf_eps"] = 1e-1
 # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
-hp["nt_epochs"] = 0
+hp["nt_epochs"] = 100
 hp["nt_lr"] = 1.2
 hp["nt_ncorr"] = 50
-hp["log_frequency"] = 100
-hp["use_tfp"] = False
+hp["log_frequency"] = 10
+hp["use_tfp"] = True
 # Record the history
 hp["save_history"] = True
 # path for loading data and saving models

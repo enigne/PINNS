@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-# import tensorflow_probability as tfp
+import tensorflow_probability as tfp
 import os
 
 from custom_lbfgs import lbfgs, Struct
@@ -207,17 +207,18 @@ class NeuralNetwork(object):
             loss_value, grads = self.LBFGS_optimization_step(params, partition_indices, stitch_indices, X_u, u)
             # save to log and output
             epoch.assign_add(1)
-            self.logger.log_train_epoch(epoch, loss_value)
+            self.logger.log_train_epoch(epoch.numpy(), loss_value, is_iter=True)
 
             return loss_value["loss"], grads
 
         # initial guess 
         init_params = tf.dynamic_stitch(stitch_indices, self.wrap_training_variables())
+        max_nIter = tf.cast(self.nt_config.maxIter/3, dtype=tf.int32)
 
         results = tfp.optimizer.lbfgs_minimize(
                 value_and_gradients_function=loss_and_grad,
                 initial_position=init_params,
-                max_iterations=self.nt_config.maxIter,
+                max_iterations=max_nIter,
                 tolerance=1e-16)
 
         # manually put the final solution back to the model
@@ -227,7 +228,7 @@ class NeuralNetwork(object):
     def Adam_optimization(self, X_u, u):
         self.logger.log_train_opt("Adam")
         for epoch in range(self.tf_epochs):
-            loss_value = self.tf_optimization_step(X_u, u)
+            loss_value = self.Adam_optimization_step(X_u, u)
             self.logger.log_train_epoch(epoch, loss_value)
 
     @tf.function
