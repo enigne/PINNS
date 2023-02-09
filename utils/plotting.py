@@ -381,8 +381,8 @@ def plot_C_train(pinn, X_star, u_star, xlb, xub): #{{{
     fig.colorbar(im, ax=ax, shrink=1)
 
     ax = axs[2][1]
-    ax.plot((pinn.logger.loss_history), label="loss")
-    ax.plot((pinn.logger.test_history), label="test")
+    ax.plot((pinn.logger.history["loss"]), label="loss")
+    ax.plot((pinn.logger.history["test"]), label="test")
     ax.axes.set_yscale('log')
     plt.legend()
 
@@ -688,8 +688,8 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     fig.colorbar(im, ax=ax, shrink=1)
 
     ax = axs[2][3]
-    ax.plot((pinn.logger.loss_history), label="loss")
-    ax.plot((pinn.logger.test_history), label="test")
+    ax.plot((pinn.logger.history["loss"]), label="loss")
+    ax.plot((pinn.logger.history["test"]), label="test")
     ax.axes.set_yscale('log')
     plt.legend()
 
