@@ -36,7 +36,7 @@ md.stressbalance.spcvy(pos)=md.initialization.vy(pos);
 md.stressbalance.spcvz(pos)=0;
 
 
-md.friction.coefficient = ( 300+50*(sin(4*pi*md.mesh.x/L).*cos(4*pi*md.mesh.y/L))) .* 10 .*(1-0.99*exp(-((y-L/2)/L*10).^2)) .* (exp(-1.5*(x/L).^2));
+md.friction.coefficient = ( 300+50*(sin(4*pi*md.mesh.x/L).*cos(4*pi*md.mesh.y/L))) .* 10 .*(1-0.99*exp(-((y-L/2)/L*10).^2)) .* (exp(-5*(x/L).^2))
 md.friction.p = 3*ones(md.mesh.numberofelements,1);
 md.friction.q = zeros(md.mesh.numberofelements,1);
 
