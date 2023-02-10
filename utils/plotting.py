@@ -594,10 +594,10 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*',  markersize = 2, clip_on = False)
 
     ax = axs[0][2]
-    im = ax.imshow(C_obs, interpolation='nearest', cmap='rainbow',
+    im = ax.imshow(C_nn - C_obs, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
             origin='lower', aspect='auto')
-    ax.set_title('obs friction C')
+    ax.set_title('C - C obs')
     fig.colorbar(im, ax=ax, shrink=1)
 
     ax = axs[0][3]
