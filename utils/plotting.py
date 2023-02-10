@@ -548,18 +548,24 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     plt.show()
     #}}}
 def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub): #{{{
-    u_pred, v_pred, H, b, C_pred = pinn.predict(X_star)
     yts = 3600*24*365
     X, Y = np.meshgrid(np.linspace(xlb[0],xub[0],200), np.linspace(xlb[1],xub[1], 200))
+    # obs
     ux = yts*griddata(X_star, u_star[:,0].flatten(), (X, Y), method='cubic')
     uy = yts*griddata(X_star, u_star[:,1].flatten(), (X, Y), method='cubic')
+    H_obs = griddata(X_star, u_star[:,2].flatten(), (X, Y), method='cubic')
+    b_obs = griddata(X_star, u_star[:,3].flatten(), (X, Y), method='cubic')
+    C_obs = griddata(X_star, u_star[:,4].flatten(), (X, Y), method='cubic')
+
+    # predicted solution
+    u_pred, v_pred, H, b, C_pred = pinn.predict(X_star)
     u_nn = yts*griddata(X_star, u_pred[:,0].flatten(), (X, Y), method='cubic')
     v_nn = yts*griddata(X_star, v_pred[:,0].flatten(), (X, Y), method='cubic')
-    C_nn = griddata(X_star, C_pred, (X, Y), method='cubic')
-    H_nn = griddata(X_star, H, (X, Y), method='cubic')
-    b_nn = griddata(X_star, b, (X, Y), method='cubic')
- #   hxy_nn = griddata(X_star, hxy, (X, Y), method='cubic')
+    C_nn = griddata(X_star, C_pred[:,0], (X, Y), method='cubic')
+    H_nn = griddata(X_star, H[:,0], (X, Y), method='cubic')
+    b_nn = griddata(X_star, b[:,0], (X, Y), method='cubic')
 
+    # residual
     f1, f2 = pinn.f_model()
     F1 = griddata(X_f, f1[:,0], (X, Y), method='cubic')
     F2 = griddata(X_f, f2[:,0], (X, Y), method='cubic')
@@ -581,8 +587,6 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     im = ax.imshow(uy, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
             origin='lower', aspect='auto')
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
     ax.set_title('obs v')
     fig.colorbar(im, ax=ax, shrink=1)
     ax.plot(pinn.X_bc[:,0], pinn.X_bc[:,1], 'k*', markersize = 2, clip_on = False)
@@ -590,31 +594,24 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*',  markersize = 2, clip_on = False)
 
     ax = axs[0][2]
-    im = ax.imshow(C_nn, interpolation='nearest', cmap='rainbow',
+    im = ax.imshow(C_obs, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
             origin='lower', aspect='auto')
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    ax.set_title('friction C')
+    ax.set_title('obs friction C')
     fig.colorbar(im, ax=ax, shrink=1)
-    # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*',  markersize = 2, clip_on = False)
 
     ax = axs[0][3]
-    im = ax.imshow(H_nn, interpolation='nearest', cmap='rainbow',
+    im = ax.imshow(H_nn-H_obs, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
             origin='lower', aspect='auto')
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    ax.set_title('Thickness')
+    ax.set_title('H-H obs')
     fig.colorbar(im, ax=ax, shrink=1)
-    # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*',  markersize = 2, clip_on = False)
 
     ################################
     ax = axs[1][0]
     im = ax.imshow(u_nn, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
             origin='lower', aspect='auto')
-    # ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_title('predict u')
     fig.colorbar(im, ax=ax, shrink=1)
@@ -624,75 +621,57 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     im = ax.imshow(v_nn, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
             origin='lower', aspect='auto')
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
     ax.set_title('predict v')
     fig.colorbar(im, ax=ax, shrink=1)
 
-    ax = axs[1][3]
-    im = ax.imshow(b_nn, interpolation='nearest', cmap='rainbow',
+    ax = axs[1][2]
+    im = ax.imshow(C_nn, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
             origin='lower', aspect='auto')
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    ax.set_title('bed')
+    ax.set_title('predict C')
+    fig.colorbar(im, ax=ax, shrink=1)
+
+    ax = axs[1][3]
+    im = ax.imshow(b_nn - b_obs, interpolation='none', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    ax.set_title('b-b obs')
     fig.colorbar(im, ax=ax, shrink=1)
 
     ################################
     ax = axs[2][0]
     im = ax.imshow(u_nn - ux, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
-            #vmin = -400, vmax=400,
             origin='lower', aspect='auto')
-    # ax.set_xlabel('x')
+    ax.set_xlabel('x')
     ax.set_ylabel('y')
-    ax.set_title('predict - obs u')
+    ax.set_title('u - u obs')
     fig.colorbar(im, ax=ax, shrink=1)
 
 
     ax = axs[2][1]
     im = ax.imshow(v_nn - uy, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
-           # vmin = -100, vmax=100,
-            origin='lower', aspect='auto')
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    ax.set_title('predict - obs v')
-    fig.colorbar(im, ax=ax, shrink=1)
-
-#    ax = axs[2][3]
-#    im = ax.imshow(hxy_nn, interpolation='nearest', cmap='rainbow',
-#            extent=[X.min(), X.max(), Y.min(), Y.max()],
-#            origin='lower', aspect='auto')
-#    # ax.set_xlabel('x')
-#    # ax.set_ylabel('y')
-#    ax.set_title('surface gradient')
-#    fig.colorbar(im, ax=ax, shrink=1)
-
-    #########################################
-    ax = axs[1][2]
-    im = ax.imshow(F1, interpolation='none', cmap='rainbow',
-            extent=[X.min(), X.max(), Y.min(), Y.max()],
             origin='lower', aspect='auto')
     ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_title('f1 residual')
+    ax.set_title('v - v obs')
     fig.colorbar(im, ax=ax, shrink=1)
 
     ax = axs[2][2]
+    im = ax.imshow(F1, interpolation='nearest', cmap='rainbow',
+            extent=[X.min(), X.max(), Y.min(), Y.max()],
+            origin='lower', aspect='auto')
+    ax.set_xlabel('x')
+    ax.set_title('f1 residual')
+    fig.colorbar(im, ax=ax, shrink=1)
+
+    ax = axs[2][3]
     im = ax.imshow(F2, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
             origin='lower', aspect='auto')
     ax.set_xlabel('x')
-    # ax.set_ylabel('y')
     ax.set_title('f2 residual')
     fig.colorbar(im, ax=ax, shrink=1)
-
-    ax = axs[2][3]
-    ax.plot((pinn.logger.history["loss"]), label="loss")
-    ax.plot((pinn.logger.history["test"]), label="test")
-    ax.axes.set_yscale('log')
-    plt.legend()
 
     plt.show()
     #}}}
