@@ -555,7 +555,7 @@ class SSANN_calvingfront(SSAAllNN): #{{{
         mse_fc2 = self.loss_weights[4]*tf.reduce_mean(tf.square(fc2_pred))
 
         # sum the total
-        totalloss = mse_u + mse_v + mse_f1 + mse_f2 + mse_H + mse_bed + mse_C
+        totalloss = mse_u + mse_v + mse_f1 + mse_f2 + mse_H + mse_bed + mse_C + mse_fc1 + mse_fc2
         return {"loss": totalloss, "mse_u": mse_u, "mse_v": mse_v, "mse_H": mse_H, 
                 "mse_bed": mse_bed, "mse_C": mse_C, "mse_f1": mse_f1, "mse_f2": mse_f2, 
                 "mes_fc1": mse_fc1, "mse_fc2": mse_fc2} 
