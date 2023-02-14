@@ -549,7 +549,7 @@ def plot_Helheim(pinn, X_f, X_star, u_star, xlb, xub): #{{{
 
     plt.show()
     #}}}
-def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub, ): #{{{
+def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
     yts = 3600*24*365
     X, Y = np.meshgrid(np.linspace(xlb[0],xub[0],200), np.linspace(xlb[1],xub[1], 200))
     # obs
@@ -592,9 +592,10 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub, ): #{{{
     fig, axs = plt.subplots(3, 4, figsize=(16,12))
 
     for ax,name in zip(axs.ravel(), plotData.keys()):
+        vr = vranges.setdefault(name, [None, None])
         im = ax.imshow(plotData[name], interpolation='nearest', cmap='rainbow',
                 extent=[X.min(), X.max(), Y.min(), Y.max()],
-                vmin=None, vmax=None,
+                vmin=vr[0], vmax=vr[1],
                 origin='lower', aspect='auto')
         ax.set_title(name)
         fig.colorbar(im, ax=ax, shrink=1)
