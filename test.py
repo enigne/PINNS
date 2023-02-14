@@ -7,7 +7,7 @@ sys.path.append("./utils")
 from custom_lbfgs import *
 from SSAutil import *
 from neuralnetwork import NeuralNetwork, MinmaxScaleLayer, UpScaleLayer
-from SSA_equations.SSANN import SSANN_invertC
+from SSA_equations.SSANN import SSANN_calvingfront_invertC
 from logger import Logger
 from plotting import *
 import matplotlib.pyplot as plt
@@ -44,35 +44,35 @@ repoPath = "./"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
 #path = os.path.join(appDataPath, "SSA2D_nocalving.mat")
 #path = os.path.join(appDataPath, "SSA2D_seg_nocalving.mat")
-#path = os.path.join(appDataPath, "SSA2D_segCF.mat")
-path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_Dirichlet.mat")
+path = os.path.join(appDataPath, "SSA2D_segCF.mat")
+#path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_Dirichlet.mat")
 
 modelPath = "./Models/test"
 reloadModel = False # reload from previous training
 #}}}
 
 # load the data
-x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb = prep_Helheim_Dirichlet(path, hp["N_u"], hp["N_f"])
+x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb = prep_Helheim_data_all(path, hp["N_u"], hp["N_f"])
 
 # Creating the model and training
 logger = Logger(hp)
-pinn = SSANN_invertC(hp, logger, X_f,
+pinn = SSANN_calvingfront_invertC(hp, logger, X_f,
         X_bc, u_bc,
         X_cf, n_cf,
         xub, xlb, uub, ulb,
         modelPath, reloadModel,
-        mu=1.2680e8,
+        mu=1.1060e8,
         loss_weights=[1e-4, 1e-3, 1e-2, 1e-4, 1e-6])
 
-X_u = pinn.tensor(X_u_train)
-u = pinn.tensor(u_train)
+X_u = pinn.tensor(X_star)
+u = pinn.tensor(u_star)
 # error function for logger
 def error():
     return pinn.test_error(X_u, u)
 logger.set_error_fn(error)
 
 # train the model
-pinn.fit(X_star, u_star)
+pinn.fit(X_u_train, u_train)
 # pinn.fit(X_bc, u_bc)
 
 # save

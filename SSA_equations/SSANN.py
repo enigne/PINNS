@@ -563,6 +563,76 @@ class SSANN_calvingfront(SSAAllNN): #{{{
     @tf.function
     def test_error(self, X_star, u_star):
         sol_pred = self.model(X_star)
+        return  tf.math.reduce_euclidean_norm(sol_pred[:,0:2] - u_star[:,0:2]) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
+    #}}}
+class SSANN_calvingfront_invertC(SSAAllNN): #{{{
+    def __init__(self, hp, logger, X_f, 
+            X_bc, u_bc, X_cf, n_cf, 
+            xub, xlb, uub, ulb, 
+            modelPath, reloadModel,
+            mu, n=3.0, 
+            loss_weights=[1e-2, 1e-3, 1e-2, 1e-4, 1e-6],
+            geoDataNN=None, FrictionCNN=None):
+        super().__init__(hp, logger, X_f, 
+                X_bc, u_bc, X_cf, n_cf,
+                xub, xlb, uub, ulb,
+                modelPath, reloadModel,
+                mu, loss_weights=loss_weights)
+
+    # only need to overwrite the loss function, change it from inferring u and v --> inferring C
+    @tf.function
+    def loss(self, uv, uv_pred):
+        # Dirichlet B.C. for u,v
+        C0 = self.u_bc[:, 4:5]
+        #u0 = self.u_bc[:, 0:1]
+        #v0 = self.u_bc[:, 1:2]
+        sol_bc_pred = self.model(self.X_bc)
+        C0_pred = sol_bc_pred[:,4:5]
+        #u0_pred = sol_bc_pred[:,0:1]
+        #v0_pred = sol_bc_pred[:,1:2]
+
+        # match H, bed, and C to the training data
+        u0 = uv[:,0:1]
+        v0 = uv[:,1:2]
+        H0 = uv[:,2:3]
+        bed0 = uv[:,3:4]
+        #C0 = uv[:,4:5]
+
+        u0_pred = uv_pred[:,0:1]
+        v0_pred = uv_pred[:,1:2]
+        H0_pred = uv_pred[:,2:3]
+        bed0_pred = uv_pred[:,3:4]
+        #C0_pred = uv_pred[:,4:5]
+
+        # f_model on the collocation points 
+        f1_pred, f2_pred = self.f_model()
+
+        # Calving on X_cf
+        fc1_pred, fc2_pred = self.cf_model(self.X_cf, self.n_cf)
+
+        # misfits
+        mse_u = self.loss_weights[0]*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = self.loss_weights[0]*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
+
+        mse_H = self.loss_weights[1]*tf.reduce_mean(tf.square(H0 - H0_pred))
+        mse_bed = self.loss_weights[1]*tf.reduce_mean(tf.square(bed0 - bed0_pred))
+        mse_C = self.loss_weights[2]* tf.reduce_mean(tf.square(C0 - C0_pred))
+
+        mse_f1 = self.loss_weights[3]*tf.reduce_mean(tf.square(f1_pred))
+        mse_f2 = self.loss_weights[3]*tf.reduce_mean(tf.square(f2_pred))
+
+        mse_fc1 = self.loss_weights[4]*tf.reduce_mean(tf.square(fc1_pred))
+        mse_fc2 = self.loss_weights[4]*tf.reduce_mean(tf.square(fc2_pred))
+
+        # sum the total
+        totalloss = mse_u + mse_v + mse_f1 + mse_f2 + mse_H + mse_bed + mse_C + mse_fc1 + mse_fc2
+        return {"loss": totalloss, "mse_u": mse_u, "mse_v": mse_v, "mse_H": mse_H, 
+                "mse_bed": mse_bed, "mse_C": mse_C, "mse_f1": mse_f1, "mse_f2": mse_f2, 
+                "mes_fc1": mse_fc1, "mse_fc2": mse_fc2} 
+
+    @tf.function
+    def test_error(self, X_star, u_star):
+        sol_pred = self.model(X_star)
         return  tf.math.reduce_euclidean_norm(sol_pred[:,4:5] - u_star[:,4:5]) / tf.math.reduce_euclidean_norm(u_star[:,4:5])
     #}}}
     
