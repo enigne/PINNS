@@ -493,7 +493,8 @@ class SSANN_invertC(SSAAllNN): #{{{
     @tf.function
     def test_error(self, X_star, u_star):
         sol_pred = self.model(X_star)
-        return  tf.math.reduce_euclidean_norm(sol_pred[:,4:5] - u_star[:,4:5]) / tf.math.reduce_euclidean_norm(u_star[:,4:5])
+        return  tf.math.reduce_euclidean_norm(tf.math.abs(sol_pred[:,4:5]) - tf.math.abs(u_star[:,4:5])) / tf.math.reduce_euclidean_norm(u_star[:,4:5])
+
     #}}}
 class SSANN_calvingfront(SSAAllNN): #{{{
     def __init__(self, hp, logger, X_f, 
@@ -633,7 +634,7 @@ class SSANN_calvingfront_invertC(SSAAllNN): #{{{
     @tf.function
     def test_error(self, X_star, u_star):
         sol_pred = self.model(X_star)
-        return  tf.math.reduce_euclidean_norm(sol_pred[:,4:5] - u_star[:,4:5]) / tf.math.reduce_euclidean_norm(u_star[:,4:5])
+        return  tf.math.reduce_euclidean_norm(tf.math.abs(sol_pred[:,4:5]) - tf.math.abs(u_star[:,4:5])) / tf.math.reduce_euclidean_norm(u_star[:,4:5])
     #}}}
     
     

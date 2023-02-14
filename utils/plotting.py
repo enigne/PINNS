@@ -44,8 +44,10 @@ def plot_SSA(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     
     ################################
     ax = axs[1][0]
+    rg = max(abs(u_nn-ux))
     im = ax.imshow(u_nn-ux, interpolation='nearest', cmap='rainbow',
                 extent=[X.min(), X.max(), Y.min(), Y.max()],
+                vmin = -rg, vmax=rg, 
                 origin='lower', aspect='auto')
     # ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -581,7 +583,7 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     ax.set_title('obs u')
     fig.colorbar(im, ax=ax, shrink=1)
 #    ax.plot(X_star[:,0],X_star[:,1], 'k*', markersize = 2, clip_on = False)
-    ax.plot(pinn.X_cf[:,0], pinn.X_cf[:,1], 'k*', markersize = 2, clip_on = False)
+#     ax.plot(pinn.X_cf[:,0], pinn.X_cf[:,1], 'k*', markersize = 2, clip_on = False)
 
     ax = axs[0][1]
     im = ax.imshow(uy, interpolation='nearest', cmap='rainbow',
@@ -594,15 +596,19 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     # ax.plot(X_u_train[:,0],X_u_train[:,1], 'k*',  markersize = 2, clip_on = False)
 
     ax = axs[0][2]
-    im = ax.imshow(C_nn - C_obs, interpolation='nearest', cmap='rainbow',
+    rg = np.nanmax(abs(abs(C_nn) - abs(C_obs)).flatten())
+    im = ax.imshow(abs(C_nn) - abs(C_obs), interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
+            vmin = -rg, vmax=rg,
             origin='lower', aspect='auto')
     ax.set_title('C - C obs')
     fig.colorbar(im, ax=ax, shrink=1)
 
     ax = axs[0][3]
+    rg = np.nanmax(abs(H_nn-H_obs).flatten())
     im = ax.imshow(H_nn-H_obs, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
+            vmin = -rg, vmax=rg,
             origin='lower', aspect='auto')
     ax.set_title('H-H obs')
     fig.colorbar(im, ax=ax, shrink=1)
@@ -625,23 +631,27 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub): #{{{
     fig.colorbar(im, ax=ax, shrink=1)
 
     ax = axs[1][2]
-    im = ax.imshow(C_nn, interpolation='nearest', cmap='rainbow',
+    im = ax.imshow((abs(C_nn)), interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
             origin='lower', aspect='auto')
     ax.set_title('predict C')
     fig.colorbar(im, ax=ax, shrink=1)
 
     ax = axs[1][3]
+    rg = np.nanmax(abs(b_nn-b_obs).flatten())
     im = ax.imshow(b_nn - b_obs, interpolation='none', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
+            vmin = -rg, vmax=rg,
             origin='lower', aspect='auto')
     ax.set_title('b-b obs')
     fig.colorbar(im, ax=ax, shrink=1)
 
     ################################
     ax = axs[2][0]
+    rg = np.nanmax(abs(u_nn-ux).flatten())
     im = ax.imshow(u_nn - ux, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
+            vmin = -rg, vmax=rg,
             origin='lower', aspect='auto')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -650,8 +660,10 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub): #{{{
 
 
     ax = axs[2][1]
+    rg = np.nanmax(abs(v_nn-uy).flatten())
     im = ax.imshow(v_nn - uy, interpolation='nearest', cmap='rainbow',
             extent=[X.min(), X.max(), Y.min(), Y.max()],
+            vmin = -rg, vmax=rg,
             origin='lower', aspect='auto')
     ax.set_xlabel('x')
     ax.set_title('v - v obs')

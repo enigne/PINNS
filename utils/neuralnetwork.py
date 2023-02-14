@@ -219,7 +219,7 @@ class NeuralNetwork(object):
                 value_and_gradients_function=loss_and_grad,
                 initial_position=init_params,
                 max_iterations=max_nIter,
-                tolerance=1e-16)
+                tolerance=1e-30)
 
         # manually put the final solution back to the model
         self.set_model_parameters(results.position, partition_indices)
