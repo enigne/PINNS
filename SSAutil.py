@@ -226,9 +226,9 @@ def prep_Helheim_data_all(path, N_u=None, N_f=None): #{{{
     # real() is to make it float by default, in case of zeroes
     Exact_vx = np.real(data['vx'].flatten()[:,None])
     Exact_vy = np.real(data['vy'].flatten()[:,None])
-    Exact_C = np.real(data['C'].flatten()[:,None])
+    Exact_b = np.real(data['h'].flatten()[:,None])
     Exact_H = np.real(data['H'].flatten()[:,None])
-    Exact_b = np.real(data['b'].flatten()[:,None])
+    Exact_C = np.real(data['C'].flatten()[:,None])
 
     # boundary nodes
     DBC = data['DBC'].flatten()[:,None]
@@ -237,7 +237,7 @@ def prep_Helheim_data_all(path, N_u=None, N_f=None): #{{{
     X_star = np.hstack((x.flatten()[:,None], y.flatten()[:,None]))
 
     # Preparing the testing u_star and vy_star
-    u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None], Exact_H.flatten()[:,None], Exact_b.flatten()[:,None], Exact_C.flatten()[:,None] )) 
+    u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None], Exact_h.flatten()[:,None], Exact_H.flatten()[:,None], Exact_C.flatten()[:,None] )) 
 
     # Domain bounds: for regularization and generate training set
     xlb = X_star.min(axis=0)
@@ -289,15 +289,15 @@ def prep_Helheim_Dirichlet(path, N_u=None, N_f=None): #{{{
     # real() is to make it float by default, in case of zeroes
     Exact_vx = np.real(data['vx'].flatten()[:,None])
     Exact_vy = np.real(data['vy'].flatten()[:,None])
-    Exact_C = np.real(data['C'].flatten()[:,None])
+    Exact_h = np.real(data['h'].flatten()[:,None])
     Exact_H = np.real(data['H'].flatten()[:,None])
-    Exact_b = np.real(data['b'].flatten()[:,None])
+    Exact_C = np.real(data['C'].flatten()[:,None])
 
     # Preparing the inputs x and y for predictions in one single array, as X_star
     X_star = np.hstack((x.flatten()[:,None], y.flatten()[:,None]))
 
     # Preparing the testing u_star and vy_star
-    u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None], Exact_H.flatten()[:,None], Exact_b.flatten()[:,None], Exact_C.flatten()[:,None] )) 
+    u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None], Exact_h.flatten()[:,None], Exact_H.flatten()[:,None], Exact_C.flatten()[:,None] )) 
 
     # Domain bounds: for regularization and generate training set
     xlb = X_star.min(axis=0)

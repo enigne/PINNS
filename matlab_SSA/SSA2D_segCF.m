@@ -6,7 +6,7 @@ md=parameterize(md,'./Par/HelheimSquare.par');
 md=setflowequation(md,'SSA','all');
 L = 8e4;
 
-withCF = 0;
+withCF = 1;
 % change x and y to column vectors
 x= md.mesh.x;
 y= md.mesh.y;
@@ -43,7 +43,7 @@ md.stressbalance.spcvx(pos)=md.initialization.vx(pos);
 md.stressbalance.spcvy(pos)=md.initialization.vy(pos);
 md.stressbalance.spcvz(pos)=0;
 
-md.friction.coefficient = ( 300+50*(sin(4*pi*md.mesh.x/L).*cos(4*pi*md.mesh.y/L))) .* 10 .*(1-0.99*exp(-((y-L/2)/L*10).^2)) .* (exp(-5*(x/L).^2))
+md.friction.coefficient = ( 300+50*(sin(4*pi*md.mesh.x/L).*cos(4*pi*md.mesh.y/L))) .* 10 .*(1-0.99*exp(-((y-L/2)/L*10).^2)) .* (exp(-5*(x/L).^2));
 md.friction.p = 3*ones(md.mesh.numberofelements,1);
 md.friction.q = zeros(md.mesh.numberofelements,1);
 
@@ -52,6 +52,7 @@ md=solve(md,'Stressbalance');
 
 %post processing{{{
 H = md.geometry.thickness;
+h = md.geometry.surface;
 b = md.geometry.base;
 vx = md.results.StressbalanceSolution.Vx ./ md.constants.yts;
 vy = md.results.StressbalanceSolution.Vy ./ md.constants.yts;
@@ -121,6 +122,6 @@ plot(X_f(:,1), X_f(:,2), 'o')
 hold off
 %}}}
 disp(['Saving to ', savename])
-	save(['./DATA/', savename, '.mat'], 'x', 'y', 'H', 'b', 'vx', 'vy', 'C', 'DBC', 'icemask',...
+	save(['./DATA/', savename, '.mat'], 'x', 'y', 'h', 'H', 'vx', 'vy', 'C', 'DBC', 'icemask',...
 		'cx', 'cy', 'nx', 'ny', 'smoothnx', 'smoothny', 'X_f', 'icemask_f');
-plotmodel(md, 'data', md.results.StressbalanceSolution.Vel, 'data', C, 'data', vx, 'data', vy, 'data', md.mask.ice_levelset<0, 'data', md.mask.ocean_levelset<0, 'data', md.geometry.base, 'data', md.geometry.thickness, 'figure', 2)
+plotmodel(md, 'data', md.results.StressbalanceSolution.Vel, 'data', C, 'data', vx, 'data', vy, 'data', md.mask.ice_levelset<0, 'data', md.mask.ocean_levelset<0, 'data', md.geometry.surface, 'data', md.geometry.thickness, 'figure', 2)
