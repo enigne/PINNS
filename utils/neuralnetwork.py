@@ -5,8 +5,10 @@ import os
 
 from custom_lbfgs import lbfgs, Struct
 
-# min-max scaling layer
 class MinmaxScaleLayer(tf.keras.layers.Layer):
+    '''
+    class of min-max scaling layer
+    '''
     def __init__(self, lb, ub, scale=2.0, offset=1.0, dtype="float64"):
         super(MinmaxScaleLayer, self).__init__()
         self.lb = tf.Variable(lb, dtype=dtype, trainable=False)
@@ -17,8 +19,10 @@ class MinmaxScaleLayer(tf.keras.layers.Layer):
     def call(self, inputs):
         return self.scale*(inputs - self.lb)/(self.ub - self.lb) - self.offset
 
-# min-max up upscaling layer
 class UpScaleLayer(tf.keras.layers.Layer):
+    '''
+    class of min-max up upscaling layer
+    '''
     def __init__(self, lb, ub, scale=0.5, offset=1.0, dtype="float64"):
         super(UpScaleLayer, self).__init__()
         self.lb = tf.Variable(lb, dtype=dtype, trainable=False)
@@ -29,8 +33,10 @@ class UpScaleLayer(tf.keras.layers.Layer):
     def call(self, inputs):
         return self.lb + self.scale*(inputs + self.offset)*(self.ub - self.lb)
 
-# main class of PINNs
 class NeuralNetwork(object):
+    '''
+    main class of PINNs
+    '''
     def __init__(self, hp, logger, xub, xlb, uub, ulb, modelPath, reloadModel=False):
 
         layers = hp["layers"]
@@ -96,65 +102,33 @@ class NeuralNetwork(object):
                 self.sizes_w.append(int(width * layers[i-1]))
                 self.sizes_b.append(int(width))
 
-    # Defining custom loss
     @tf.function
     def loss(self, u, u_pred):
+        '''
+        Defining custom loss
+        '''
         return {"loss": tf.reduce_mean(tf.square(u - u_pred))}
 
     @tf.function
     def grad(self, X, u):
+        '''
+        Compute the gradient of the loss function with respect to the training variables
+        '''
         with tf.GradientTape() as tape:
             loss_value = self.loss(u, self.model(X))
         grads = tape.gradient(loss_value["loss"], self.wrap_training_variables())
         return loss_value, grads
 
     def wrap_training_variables(self):
+        '''
+        return all list of the trainable variables, if using multiple NNs, return a list of all the list 
+        '''
         var = self.trainableVariables 
         return var
 
-    def get_params(self, numpy=False):
-        return []
-
-    def get_weights(self, convert_to_tensor=True):
-        w = []
-        for layer in self.trainableLayers:
-            weights_biases = layer.get_weights()
-            weights = weights_biases[0].flatten()
-            biases = weights_biases[1]
-            w.extend(weights)
-            w.extend(biases)
-        if convert_to_tensor:
-            w = self.tensor(w)
-        return w
-
-    def set_weights(self, w):
-        for i, layer in enumerate(self.trainableLayers):
-            start_weights = sum(self.sizes_w[:i]) + sum(self.sizes_b[:i])
-            end_weights = sum(self.sizes_w[:i+1]) + sum(self.sizes_b[:i])
-            weights = w[start_weights:end_weights]
-            w_div = int(self.sizes_w[i] / self.sizes_b[i])
-            weights = tf.reshape(weights, [w_div, self.sizes_b[i]])
-            biases = w[end_weights:end_weights + self.sizes_b[i]]
-            weights_biases = [weights, biases]
-            layer.set_weights(weights_biases)
-
-    def get_loss_and_flat_grad(self, X, u):
-        def loss_and_flat_grad(w):
-            with tf.GradientTape() as tape:
-                self.set_weights(w)
-                loss_value = self.loss(u, self.model(X))
-            grad = tape.gradient(loss_value, self.wrap_training_variables())
-            grad_flat = []
-            for g in grad:
-                grad_flat.append(tf.reshape(g, [-1]))
-            grad_flat = tf.concat(grad_flat, 0)
-            return loss_value, grad_flat
-
-        return loss_and_flat_grad
-
     def get_indices(self):
         ''' 
-            to use tf.dynamic_stitch and tf.dynamic_partition
+        get indices of all the trainable varialbes using tf.dynamic_stitch and tf.dynamic_partition
         '''
         shapes = tf.shape_n(self.wrap_training_variables())
         count = 0
@@ -170,19 +144,18 @@ class NeuralNetwork(object):
 
     def set_model_parameters(self, params, partition_indices):
         '''
-            update model parameters 
+        update model parameters 
         '''
         shapes = tf.shape_n(self.wrap_training_variables())
         params = tf.dynamic_partition(params, partition_indices, len(shapes))
         for i, (shape, param) in enumerate(zip(shapes, params)):
             self.trainableVariables[i].assign(tf.reshape(param, shape))
-    
 
     # L-BFGS 
     @tf.function
     def LBFGS_optimization_step(self, params, partition_indices, stitch_indices, X_u, u):
         '''
-        calculate the gradients also return the value of the loss function
+        one step in LBFGS: calculate the gradients also return the value of the loss function
         '''
         with tf.GradientTape() as tape:
             self.set_model_parameters(params, partition_indices)
@@ -195,6 +168,9 @@ class NeuralNetwork(object):
         return loss_value, grad_flat
 
     def LBFGS_optimization(self, X_u, u):
+        '''
+        L-BFGS: using tensorflow_probability
+        '''
         self.logger.log_train_opt("tfp-L-BFGS")
         # get the indices
         partition_indices, stitch_indices = self.get_indices()
@@ -226,6 +202,9 @@ class NeuralNetwork(object):
 
     # ADAM
     def Adam_optimization(self, X_u, u):
+        '''
+        Adams
+        '''
         self.logger.log_train_opt("Adam")
         for epoch in range(self.tf_epochs):
             loss_value = self.Adam_optimization_step(X_u, u)
@@ -233,38 +212,18 @@ class NeuralNetwork(object):
 
     @tf.function
     def Adam_optimization_step(self, X_u, u):
+        '''
+        one step in Adam
+        '''
         loss_value, grads = self.grad(X_u, u)
         self.tf_optimizer.apply_gradients(
                 zip(grads, self.wrap_training_variables()))
         return loss_value
 
-    def nt_optimization(self, X_u, u):
-        self.logger.log_train_opt("LBFGS")
-        loss_and_flat_grad = self.get_loss_and_flat_grad(X_u, u)
-        self.nt_optimization_steps(loss_and_flat_grad)
-
-    def nt_optimization_steps(self, loss_and_flat_grad):
-        lbfgs(loss_and_flat_grad,
-              self.get_weights(),
-              self.nt_config, Struct(), True,
-              lambda epoch, loss, is_iter:
-              self.logger.log_train_epoch(epoch, loss, "", is_iter))
-
-    def tfp_nt_optimization_old(self, X_u, u):
-        self.logger.log_train_opt("tfp-LBFGS")
-        loss_and_flat_grad = self.get_loss_and_flat_grad(X_u, u)
-        tfp.optimizer.lbfgs_minimize(
-                loss_and_flat_grad,
-                initial_position=self.get_weights(),
-                num_correction_pairs=self.nt_config.nCorrection,
-                max_iterations=self.nt_config.maxIter,
-                max_line_search_iterations=50,
-                initial_inverse_hessian_estimate=None,
-                f_relative_tolerance=self.nt_config.tolFun,
-                tolerance=1e-8, 
-                parallel_iterations=20)
-
     def fit(self, X_u, u):
+        '''
+        main function to run the trainning: Adams + L-BFGS
+        '''
         self.logger.log_train_start(self)
 
         # Creating the tensors
@@ -295,18 +254,3 @@ class NeuralNetwork(object):
     def save(self):
         if hasattr(self, 'model'):
             self.model.save(self.modelPath)
-#
-#    def load(self, path, name, mtype='Umodel'):
-#        if hasattr(self, 'model'):
-#            self.model = tf.keras.models.load_model(path + name+'/Umodel')
-#        if hasattr(self, 'C_model'):
-#            self.C_model = tf.keras.models.load_model(path + name+'/Cmodel')
-
-#    def save_weights(self, path, name):
-#        self.model.save_weights(path + name+'/Umodel_weights')
-#        self.C_model.save_weights(path + name+'/Cmodel_weights')
-#
-#    def load_weights(self, path, name):
-#        self.model.load_weights(path + name+'/Umodel_weights')
-#        self.C_model.load_weights(path + name+'/Cmodel_weights')
-#

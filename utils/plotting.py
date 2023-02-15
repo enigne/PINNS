@@ -555,17 +555,17 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
     # obs
     ux = yts*griddata(X_star, u_star[:,0].flatten(), (X, Y), method='cubic')
     uy = yts*griddata(X_star, u_star[:,1].flatten(), (X, Y), method='cubic')
-    H_obs = griddata(X_star, u_star[:,2].flatten(), (X, Y), method='cubic')
-    b_obs = griddata(X_star, u_star[:,3].flatten(), (X, Y), method='cubic')
+    h_obs = griddata(X_star, u_star[:,2].flatten(), (X, Y), method='cubic')
+    H_obs = griddata(X_star, u_star[:,3].flatten(), (X, Y), method='cubic')
     C_obs = griddata(X_star, u_star[:,4].flatten(), (X, Y), method='cubic')
 
     # predicted solution
-    u_pred, v_pred, H, b, C_pred = pinn.predict(X_star)
+    u_pred, v_pred, h, H, C_pred = pinn.predict(X_star)
     u_nn = yts*griddata(X_star, u_pred[:,0].flatten(), (X, Y), method='cubic')
     v_nn = yts*griddata(X_star, v_pred[:,0].flatten(), (X, Y), method='cubic')
     C_nn = griddata(X_star, C_pred[:,0], (X, Y), method='cubic')
+    h_nn = griddata(X_star, h[:,0], (X, Y), method='cubic')
     H_nn = griddata(X_star, H[:,0], (X, Y), method='cubic')
-    b_nn = griddata(X_star, b[:,0], (X, Y), method='cubic')
 
     # residual
     f1, f2 = pinn.f_model()
@@ -577,12 +577,12 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
     plotData['u obs'] = ux
     plotData['v obs'] = uy
     plotData['C - C obs'] = abs(C_nn) - abs(C_obs)
-    plotData['H - H obs'] = H_nn - H_obs
+    plotData['h - h obs'] = h_nn - h_obs
     ###########################
     plotData['u pred'] = u_nn
     plotData['v pred'] = v_nn
     plotData['C pred'] = abs(C_nn)
-    plotData['b - b obs'] = b_nn - b_obs
+    plotData['H - H obs'] = H_nn - H_obs
     ###########################
     plotData['u - u obs'] = u_nn - ux
     plotData['v - v obs'] = v_nn - uy
