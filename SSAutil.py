@@ -226,7 +226,7 @@ def prep_Helheim_data_all(path, N_u=None, N_f=None): #{{{
     # real() is to make it float by default, in case of zeroes
     Exact_vx = np.real(data['vx'].flatten()[:,None])
     Exact_vy = np.real(data['vy'].flatten()[:,None])
-    Exact_b = np.real(data['h'].flatten()[:,None])
+    Exact_h = np.real(data['h'].flatten()[:,None])
     Exact_H = np.real(data['H'].flatten()[:,None])
     Exact_C = np.real(data['C'].flatten()[:,None])
 
