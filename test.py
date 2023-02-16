@@ -44,8 +44,8 @@ repoPath = "./"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
 #path = os.path.join(appDataPath, "SSA2D_nocalving.mat")
 #path = os.path.join(appDataPath, "SSA2D_seg_nocalving.mat")
-path = os.path.join(appDataPath, "SSA2D_segCF.mat")
-#path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_Dirichlet.mat")
+#path = os.path.join(appDataPath, "SSA2D_segCF.mat")
+path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_fastflow_CF.mat")
 
 modelPath = "./Models/test"
 reloadModel = False # reload from previous training
@@ -61,8 +61,8 @@ pinn = SSANN_calvingfront_invertC(hp, logger, X_f,
         X_cf, n_cf,
         xub, xlb, uub, ulb,
         modelPath, reloadModel,
-        mu=1.1060e8,
-        loss_weights=[1e-4, 1e-3, 1e-2, 1e-4, 1e-6])
+        mu=1.2680e8,
+        loss_weights=[1e-5, 1e-3, 1e-5, 1e-9, 1e-12])
 
 X_u = pinn.tensor(X_star)
 u = pinn.tensor(u_star)
