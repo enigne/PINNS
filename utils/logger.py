@@ -43,7 +43,7 @@ class Logger(object):
     def set_error_fn(self, error_fn):
         self.error_fn = error_fn
 
-    def log_train_start(self, model, model_description=False):
+    def log_train_start(self, model, model_description=True):
         print("\nTraining started")
         print("================")
         self.model = model
