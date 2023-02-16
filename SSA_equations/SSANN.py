@@ -4,7 +4,7 @@ import tensorflow as tf
 import numpy as np
 sys.path.append("../utils")
 from custom_lbfgs import *
-from neuralnetwork import NeuralNetwork, MinmaxScaleLayer, UpScaleLayer
+from neuralnetwork import NeuralNetwork, MinmaxScaleLayer, UpScaleLayer, create_NN
 from logger import Logger
 
 class SSAInformedNN(NeuralNetwork): #{{{
@@ -392,7 +392,7 @@ class SSAAllNN(NeuralNetwork): #{{{
         return fc1, fc2
 
     @tf.function
-    def loss(self, uv, uv_pred):
+    def loss(self, uv, X_u):
         '''
         The basic format of loss function: knowing the geometry and C, solve for u and v
         '''
@@ -407,6 +407,7 @@ class SSAAllNN(NeuralNetwork): #{{{
         h0 = uv[:,2:3]
         H0 = uv[:,3:4]
         C0 = uv[:,4:5]
+        uv_pred = self.model(X_u)
         h0_pred = uv_pred[:,2:3]
         H0_pred = uv_pred[:,3:4]
         C0_pred = uv_pred[:,4:5]
@@ -472,7 +473,7 @@ class SSANN_invertC(SSAAllNN): #{{{
 
     # only need to overwrite the loss function, change it from inferring u and v --> inferring C
     @tf.function
-    def loss(self, uv, uv_pred):
+    def loss(self, uv, X_u):
         '''
         loss = |u-uobs|+|v-vobs|+|h-hobs|+|H-Hobs|+|f1|+|f2|
         '''
@@ -487,6 +488,7 @@ class SSANN_invertC(SSAAllNN): #{{{
         h0 = uv[:,2:3]
         H0 = uv[:,3:4]
 
+        uv_pred = self.model(X_u)
         u0_pred = uv_pred[:,0:1]
         v0_pred = uv_pred[:,1:2]
         h0_pred = uv_pred[:,2:3]
@@ -541,7 +543,7 @@ class SSANN_calvingfront(SSAAllNN): #{{{
                 mu, loss_weights=loss_weights)
 
     @tf.function
-    def loss(self, uv, uv_pred):
+    def loss(self, uv, X_u):
         '''
         # only need to overwrite the loss function of the parent class
         '''
@@ -557,6 +559,7 @@ class SSANN_calvingfront(SSAAllNN): #{{{
         H0 = uv[:,3:4]
         C0 = uv[:,4:5]
 
+        uv_pred = self.model(X_u)
         h0_pred = uv_pred[:,2:3]
         H0_pred = uv_pred[:,3:4]
         C0_pred = uv_pred[:,4:5]
@@ -605,7 +608,7 @@ class SSANN_calvingfront_invertC(SSAAllNN): #{{{
                 mu, loss_weights=loss_weights)
 
     @tf.function
-    def loss(self, uv, uv_pred):
+    def loss(self, uv, X_u):
         '''
         loss = |u-uobs|+|v-vobs|+|h-hobs|+|H-Hobs|+|f1|+|f2|+|fc1|+|fc2|
         '''
@@ -620,6 +623,7 @@ class SSANN_calvingfront_invertC(SSAAllNN): #{{{
         h0 = uv[:,2:3]
         H0 = uv[:,3:4]
 
+        uv_pred = self.model(X_u)
         u0_pred = uv_pred[:,0:1]
         v0_pred = uv_pred[:,1:2]
         h0_pred = uv_pred[:,2:3]
@@ -658,6 +662,129 @@ class SSANN_calvingfront_invertC(SSAAllNN): #{{{
         '''
         sol_pred = self.model(X_star)
         return  tf.math.reduce_euclidean_norm(tf.math.abs(sol_pred[:,4:5]) - tf.math.abs(u_star[:,4:5])) / tf.math.reduce_euclidean_norm(u_star[:,4:5])
+    #}}}
+class SSA3NN_invertC(SSAAllNN): #{{{
+    '''
+    class of inverting C from observed u and v, as well as h and H, with no calving front boundary
+    '''
+    def __init__(self, hp, logger, X_f, 
+            X_bc, u_bc, X_cf, n_cf, 
+            xub, xlb, uub, ulb, 
+            modelPath, reloadModel,
+            mu, n=3.0, 
+            loss_weights=[1e-2, 1e-6, 1e-10, 1e-10],
+            geoDataNN=None, FrictionCNN=None):
+        super().__init__(hp, logger, X_f, 
+                X_bc, u_bc, X_cf, n_cf,
+                xub, xlb, uub[0:2], ulb[0:2],
+                modelPath, reloadModel,
+                mu, loss_weights=loss_weights)
+        # hp["layers"] defines uv model
+
+        # hp["h_layers"] defines h and H model
+        self.h_model = create_NN(hp["h_layers"], inputRange=(xlb, xub), outputRange=(ulb[2:4], uub[2:4]))
+
+        # hp["C_layers"] defines C model
+        self.C_model = create_NN(hp["C_layers"], inputRange=(xlb, xub), outputRange=(ulb[4:5], uub[4:5]))
+
+        self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.C_model.layers[1:-1]) 
+        self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.C_model.trainable_variables
+
+    # get the velocity and derivative information
+    @tf.function
+    def nn_model(self, X):
+        x = X[:, 0:1]
+        y = X[:, 1:2]
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(x)
+            tape.watch(y)
+            Xtemp = tf.concat([x, y], axis=1)
+
+            uvsol = self.model(Xtemp)
+            u = uvsol[:, 0:1]
+            v = uvsol[:, 1:2]
+
+            hsol = self.h_model(Xtemp)
+            h = hsol[:, 0:1]
+            H = hsol[:, 1:2]
+
+            C = self.C_model(Xtemp)
+
+        u_x = tape.gradient(u, x)
+        v_x = tape.gradient(v, x)
+        u_y = tape.gradient(u, y)
+        v_y = tape.gradient(v, y)
+        del tape
+
+        return u, v, u_x, v_x, u_y, v_y, h, H, C
+
+
+    @tf.function
+    def loss(self, uv, X_u):
+        '''
+        loss = |u-uobs|+|v-vobs|+|h-hobs|+|H-Hobs|+|f1|+|f2|
+        '''
+        # Dirichlet B.C. for C
+        C0 = self.u_bc[:, 4:5]
+        C0_pred = self.C_model(self.X_bc)
+
+        # match h, H, and C to the training data
+        u0 = uv[:,0:1]
+        v0 = uv[:,1:2]
+        h0 = uv[:,2:3]
+        H0 = uv[:,3:4]
+
+        uv_pred = self.model(X_u)
+        u0_pred = uv_pred[:,0:1]
+        v0_pred = uv_pred[:,1:2]
+        hH_pred = self.h_model(X_u)
+        h0_pred = hH_pred[:,0:1]
+        H0_pred = hH_pred[:,1:2]
+
+        # f_model on the collocation points 
+        f1_pred, f2_pred = self.f_model()
+
+        # Calving on X_cf
+       # fc1_pred, fc2_pred = self.cf_model(self.X_cf, self.n_cf)
+
+        # misfits
+        mse_u = self.loss_weights[0]*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = self.loss_weights[0]*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
+
+        mse_h = self.loss_weights[1]*tf.reduce_mean(tf.square(h0 - h0_pred))
+        mse_H = self.loss_weights[1]*tf.reduce_mean(tf.square(H0 - H0_pred))
+        mse_C = self.loss_weights[2]* tf.reduce_mean(tf.square(C0 - C0_pred))
+
+        mse_f1 = self.loss_weights[3]*tf.reduce_mean(tf.square(f1_pred))
+        mse_f2 = self.loss_weights[3]*tf.reduce_mean(tf.square(f2_pred))
+
+        # sum the total
+        totalloss = mse_u + mse_v + mse_f1 + mse_f2 + mse_h + mse_H + mse_C
+        return {"loss": totalloss, "mse_u": mse_u, "mse_v": mse_v, "mse_h": mse_h, 
+                "mse_H": mse_H, "mse_C": mse_C, "mse_f1": mse_f1, "mse_f2": mse_f2} 
+
+    @tf.function
+    def test_error(self, X_star, u_star):
+        '''
+        test error of C, since C^2 in the friction law, the sign of C does not matter
+        '''
+        sol_pred = self.C_model(X_star)
+        return  tf.math.reduce_euclidean_norm(tf.math.abs(sol_pred) - tf.math.abs(u_star[:,4:5])) / tf.math.reduce_euclidean_norm(u_star[:,4:5])
+
+    def predict(self, X_star):
+        '''
+        return numpy array of the model
+        '''
+        sol_pred = self.model(X_star)
+        u_pred = sol_pred[:, 0:1]
+        v_pred = sol_pred[:, 1:2]
+
+        hH_pred = self.h_model(X_star)
+        h_pred = hH_pred[:, 0:1]
+        H_pred = hH_pred[:, 1:2]
+        C_pred = self.C_model(X_star)
+
+        return u_pred.numpy(), v_pred.numpy(), h_pred.numpy(), H_pred.numpy(), C_pred.numpy()
     #}}}
     
     

@@ -106,10 +106,11 @@ class NeuralNetwork(object):
         self.trainableVariables = self.model.trainable_variables
 
     @tf.function
-    def loss(self, u, u_pred):
+    def loss(self, u, X_u):
         '''
         Defining custom loss
         '''
+        u_pred = self.model(X_u)
         return {"loss": tf.reduce_mean(tf.square(u - u_pred))}
 
     @tf.function
@@ -118,7 +119,7 @@ class NeuralNetwork(object):
         Compute the gradient of the loss function with respect to the training variables
         '''
         with tf.GradientTape() as tape:
-            loss_value = self.loss(u, self.model(X))
+            loss_value = self.loss(u, X)
         grads = tape.gradient(loss_value["loss"], self.wrap_training_variables())
         return loss_value, grads
 
@@ -162,7 +163,7 @@ class NeuralNetwork(object):
         '''
         with tf.GradientTape() as tape:
             self.set_model_parameters(params, partition_indices)
-            loss_value = self.loss(u, self.model(X_u))
+            loss_value = self.loss(u, X_u)
 
         # compute the gradient
         grads = tape.gradient(loss_value["loss"], self.wrap_training_variables())
