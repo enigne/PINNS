@@ -33,6 +33,33 @@ class UpScaleLayer(tf.keras.layers.Layer):
     def call(self, inputs):
         return self.lb + self.scale*(inputs + self.offset)*(self.ub - self.lb)
 
+def create_NN(layers, inputRange=(0.0, 1.0), outputRange=(0.0, 1.0), activation=tf.nn.tanh):
+    '''
+    create a NN with according to the layers, scale input and upscale the output
+    '''
+    # initialize a sequential model
+    model = tf.keras.Sequential()
+    # input layer
+    model.add(tf.keras.layers.InputLayer(input_shape=(layers[0],)))
+    # normalization layer
+    model.add(MinmaxScaleLayer(inputRange[0], inputRange[1]))
+
+    # hiden layers
+    for width in layers[1:-1]:
+        model.add(tf.keras.layers.Dense(
+                width, activation=activation,
+                kernel_initializer="glorot_normal"))
+
+    # output layer
+    model.add(tf.keras.layers.Dense(
+            layers[-1], activation=None,
+            kernel_initializer="glorot_normal"))
+
+    # denormalization layer
+    model.add(UpScaleLayer(outputRange[0], outputRange[1]))
+
+    return model
+
 class NeuralNetwork(object):
     '''
     main class of PINNs
@@ -44,11 +71,8 @@ class NeuralNetwork(object):
         # Setting up the optimizers with the hyper-parameters
         # params for L-BFGS
         self.nt_config = Struct()
-        self.nt_config.learningRate = hp["nt_lr"]
         self.nt_config.maxIter = hp["nt_epochs"]
-        self.nt_config.nCorrection = hp["nt_ncorr"]
         self.nt_config.tolFun = 1.0 * np.finfo(float).eps
-        self.use_tfp = hp.setdefault("use_tfp", False)
 
         # params for Adam
         self.tf_epochs = hp["tf_epochs"]
@@ -63,7 +87,9 @@ class NeuralNetwork(object):
         # logger
         self.logger = logger
 
+        # use double percision
         self.dtype = "float64"
+
         # Descriptive Keras model
         tf.keras.backend.set_floatx(self.dtype)
 
@@ -71,36 +97,13 @@ class NeuralNetwork(object):
             #load 
             self.model = tf.keras.models.load_model(modelPath)
         else:
-            self.model = tf.keras.Sequential()
-            # input layer
-            self.model.add(tf.keras.layers.InputLayer(input_shape=(layers[0],)))
-            # normalization layer
-            self.model.add(MinmaxScaleLayer(xlb, xub))
+            # create a new NN
+            self.model = create_NN(layers, inputRange=(xlb, xub), outputRange=(ulb, uub))
 
-            # NN layers
-            for width in layers[1:-1]:
-                self.model.add(tf.keras.layers.Dense(
-                    width, activation=tf.nn.tanh,
-                    kernel_initializer="glorot_normal"))
-            # output layer
-            self.model.add(tf.keras.layers.Dense(
-                    layers[-1], activation=None,
-                    kernel_initializer="glorot_normal"))
-
-            # denormalization layer
-            self.model.add(UpScaleLayer(ulb, uub))
-
-        # setup trainable layers
+        # setup trainable layers, will be used in L-BFGS
+        # need to be overwritten if using more than one NN
         self.trainableLayers = self.model.layers[1:-1]
         self.trainableVariables = self.model.trainable_variables
-
-        # Computing the sizes of weights/biases for future decomposition
-        self.sizes_w = []
-        self.sizes_b = []
-        for i, width in enumerate(layers):
-            if i > 0:
-                self.sizes_w.append(int(width * layers[i-1]))
-                self.sizes_b.append(int(width))
 
     @tf.function
     def loss(self, u, u_pred):
@@ -234,11 +237,9 @@ class NeuralNetwork(object):
         self.Adam_optimization(X_u, u)
 
         # use LBFGS
-        if self.use_tfp:
-            self.LBFGS_optimization(X_u, u)
-        else:
-            self.nt_optimization(X_u, u)
+        self.LBFGS_optimization(X_u, u)
 
+        # log
         self.logger.log_train_end(self.tf_epochs + self.nt_config.maxIter)
 
     def predict(self, X_star):

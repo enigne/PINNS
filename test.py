@@ -62,7 +62,7 @@ pinn = SSANN_calvingfront_invertC(hp, logger, X_f,
         xub, xlb, uub, ulb,
         modelPath, reloadModel,
         mu=1.2680e8,
-        loss_weights=[1e-5, 1e-3, 1e-5, 1e-9, 1e-12])
+        loss_weights=[1e-5, 1e-3, 1e-5, 1e-9, 1e-14])
 
 X_u = pinn.tensor(X_star)
 u = pinn.tensor(u_star)
