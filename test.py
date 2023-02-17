@@ -7,7 +7,7 @@ sys.path.append("./utils")
 from custom_lbfgs import *
 from SSAutil import *
 from neuralnetwork import NeuralNetwork, MinmaxScaleLayer, UpScaleLayer
-from SSA_equations.SSANN import SSA3NN_invertC
+from SSA_equations.SSANN import *
 from logger import Logger
 from plotting import *
 import matplotlib.pyplot as plt
@@ -44,8 +44,8 @@ hp["history_frequency"] = 10
 repoPath = "./"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
 #path = os.path.join(appDataPath, "SSA2D_nocalving.mat")
-path = os.path.join(appDataPath, "SSA2D_seg_nocalving.mat")
-#path = os.path.join(appDataPath, "SSA2D_segCF.mat")
+#path = os.path.join(appDataPath, "SSA2D_seg_nocalving.mat")
+path = os.path.join(appDataPath, "SSA2D_segCF.mat")
 #path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_fastflow_CF.mat")
 
 modelPath = "./Models/test"
@@ -57,7 +57,7 @@ x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X
 
 # Creating the model and training
 logger = Logger(hp)
-pinn = SSA3NN_invertC(hp, logger, X_f,
+pinn = SSA3NN_calvingfront_invertC(hp, logger, X_f,
         X_bc, u_bc,
         X_cf, n_cf,
         xub, xlb, uub, ulb,
