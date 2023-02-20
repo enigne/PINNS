@@ -849,7 +849,7 @@ class SSA3NN_calvingfront_invertC(SSA3NN_invertC): #{{{
         mse_fc1 = self.loss_weights[4]*tf.reduce_mean(tf.square(fc1_pred))
         mse_fc2 = self.loss_weights[4]*tf.reduce_mean(tf.square(fc2_pred))
         # sum the total
-        totalloss = mse_u + mse_v + mse_f1 + mse_f2 + mse_h + mse_H + mse_C
+        totalloss = mse_u + mse_v + mse_f1 + mse_f2 + mse_h + mse_H + mse_C + mse_fc1 + mse_fc2
         return {"loss": totalloss, "mse_u": mse_u, "mse_v": mse_v, "mse_h": mse_h, 
                 "mse_H": mse_H, "mse_C": mse_C, "mse_f1": mse_f1, "mse_f2": mse_f2,
                 "mes_fc1": mse_fc1, "mse_fc2": mse_fc2} 
