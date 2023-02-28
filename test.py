@@ -1,16 +1,10 @@
-import sys
 import os
 import tensorflow as tf
 import numpy as np
-sys.path.append(".")
-sys.path.append("./utils")
-from custom_lbfgs import *
-from SSAutil import *
-from neuralnetwork import NeuralNetwork, MinmaxScaleLayer, UpScaleLayer
-from SSA_equations.SSANN import *
-from logger import Logger
-from plotting import *
 import matplotlib.pyplot as plt
+
+from utils import *
+from equations import *
 
 # Manually making sure the numpy random seeds are "the same" on all devices
 np.random.seed(1234)

@@ -1,9 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import tensorflow_probability as tfp
-import os
-
-from custom_lbfgs import lbfgs, Struct
 
 class MinmaxScaleLayer(tf.keras.layers.Layer):
     '''
@@ -256,3 +253,13 @@ class NeuralNetwork(object):
     def save(self):
         if hasattr(self, 'model'):
             self.model.save(self.modelPath)
+
+# dummy/Struct gives Lua-like struct object with 0 defaults
+class dummy(object):
+    pass
+
+class Struct(dummy):
+    def __getattribute__(self, key):
+        if key == '__dict__':
+            return super(dummy, self).__getattribute__('__dict__')
+        return self.__dict__.get(key, 0)

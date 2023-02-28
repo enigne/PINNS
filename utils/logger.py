@@ -1,8 +1,8 @@
 import json
-import tensorflow as tf
 import time
-from datetime import datetime
+import tensorflow as tf
 import numpy as np
+from datetime import datetime
 from typing import Dict
 
 class Logger(object):

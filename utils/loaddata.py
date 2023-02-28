@@ -1,11 +1,12 @@
-import scipy.io
-import numpy as np
-import tensorflow as tf
-import time
-from datetime import datetime
-from pyDOE import lhs
 import os
 import sys
+import scipy.io
+import time
+
+import numpy as np
+import tensorflow as tf
+from datetime import datetime
+from pyDOE import lhs
 
 def prep_data(path, N_u=None, N_f=None, invertC=False): #{{{
     # Reading SSA ref solutions: x, y-coordinates, usol and Hsol

@@ -2,10 +2,8 @@ import sys
 import os
 import tensorflow as tf
 import numpy as np
-sys.path.append("../utils")
-from custom_lbfgs import *
-from neuralnetwork import NeuralNetwork, MinmaxScaleLayer, UpScaleLayer, create_NN
-from logger import Logger
+
+from utils import *
 
 class SSAInformedNN(NeuralNetwork): #{{{
     def __init__(self, hp, logger, X_f, 
