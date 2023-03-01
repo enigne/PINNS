@@ -13,11 +13,11 @@ tf.random.set_seed(1234)
 # Hyper parameters {{{
 hp = {}
 # Data size on the solution u
-hp["N_u"] = 3000
+hp["N_u"] = 50
 # Collocation points size, where we’ll check for f = 0
 hp["N_f"] = 1000
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
-hp["layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
+hp["layers"] = [1, 20, 20, 20, 20, 20, 20, 20, 20, 4]
 hp["h_layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 2]
 hp["C_layers"] = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
@@ -39,24 +39,25 @@ repoPath = "./"
 appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
 #path = os.path.join(appDataPath, "SSA2D_nocalving.mat")
 #path = os.path.join(appDataPath, "SSA2D_seg_nocalving.mat")
-path = os.path.join(appDataPath, "SSA2D_segCF.mat")
+#path = os.path.join(appDataPath, "SSA2D_segCF.mat")
 #path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_fastflow_CF.mat")
+path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_flowline_CF.mat")
 
 modelPath = "./Models/test"
 reloadModel = False # reload from previous training
 #}}}
 
 # load the data
-x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb = prep_Helheim_data_all(path, hp["N_u"], hp["N_f"])
+x, Exact_vel, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu = prep_Helheim_data_flowline(path, hp["N_u"], hp["N_f"])
 
 # Creating the model and training
 logger = Logger(hp)
-pinn = SSA3NN_calvingfront_invertC(hp, logger, X_f,
+pinn = SSA1D_invertC(hp, logger, X_f,
         X_bc, u_bc,
         X_cf, n_cf,
         xub, xlb, uub, ulb,
         modelPath, reloadModel,
-        mu=1.1060e8,
+        mu=mu,
         loss_weights=[1e-1, 1e-2, 1e-2, 1e-4, 1e-14])
 
 X_u = pinn.tensor(X_star)
@@ -67,13 +68,13 @@ def error():
 logger.set_error_fn(error)
 
 # train the model
-#pinn.fit(X_u_train, u_train)
+pinn.fit(X_u_train, u_train)
 # pinn.fit(X_bc, u_bc)
 
 # save
 #pinn.model.save("./Models/SSA2D_friction_1e_4_TF"+str(hp["tf_epochs"]) +"_NT"+str(hp["nt_epochs"]))
-plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub)
+#plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub)
 
 # history
-plot_log_history(pinn)
+#plot_log_history(pinn)
 
