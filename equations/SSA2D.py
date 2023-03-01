@@ -112,11 +112,11 @@ class SSAInformedNN(NeuralNetwork): #{{{
 
     # Calving front condition
     @tf.function
-    def cf_model (self, X, n):
+    def cf_model (self, X, nn):
         x = X[:, 0:1]
         y = X[:, 1:2]
-        nx = n[:, 0:1]
-        ny = n[:, 1:2]
+        nx = nn[:, 0:1]
+        ny = nn[:, 1:2]
 
         # viscosity
         mu = self.mu
@@ -360,12 +360,12 @@ class SSAAllNN(NeuralNetwork): #{{{
 
     # Calving front condition
     @tf.function
-    def cf_model (self, X, n):
+    def cf_model (self, X, nn):
         '''
         function for calving front boundary
         '''
-        nx = n[:, 0:1]
-        ny = n[:, 1:2]
+        nx = nn[:, 0:1]
+        ny = nn[:, 1:2]
 
         # viscosity
         mu = self.mu
