@@ -377,15 +377,15 @@ def prep_Helheim_data_flowline(path, N_u=None, N_f=None): #{{{
     # Stacking them in multidimensional tensors for training, only use ice covered area
     icemask = data['icemask'].flatten()[:,None]
     iice = np.transpose(np.asarray(icemask>0).nonzero())
-    X_u_train = X_star[iice[:,0]]
-    u_train = np.vstack([u_star[iice[:,0],:]])
+    X_star = X_star[iice[:,0]]
+    u_star = np.vstack([u_star[iice[:,0],:]])
 
     # Generating a uniform random sample from ints between 0, and the size of x_u_train, of size N_u (initial data size) and without replacement (unique)
-    idx = np.random.choice(X_u_train.shape[0], N_u, replace=False)
+    idx = np.random.choice(X_star.shape[0], N_u, replace=False)
     # Getting the corresponding X_u_train (which is now scarce boundary/initial coordinates)
-    X_u_train = X_u_train[idx]
+    X_u_train = X_star[idx]
     # Getting the corresponding u_train
-    u_train = u_train [idx,:]
+    u_train = u_star[idx,:]
 
     # calving front info
     cx = data['cx'].flatten()[:,None]
