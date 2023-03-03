@@ -383,7 +383,7 @@ def prep_Helheim_data_flowline(path, N_u=None, N_f=None): #{{{
     # Generating a uniform random sample from ints between 0, and the size of x_u_train, of size N_u (initial data size) and without replacement (unique)
     idx = np.random.choice(X_u_train.shape[0], N_u, replace=False)
     # Getting the corresponding X_u_train (which is now scarce boundary/initial coordinates)
-    X_u_train = X_u_train[idx,None]
+    X_u_train = X_u_train[idx]
     # Getting the corresponding u_train
     u_train = u_train [idx,:]
 

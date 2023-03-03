@@ -617,3 +617,98 @@ def plot_log_history(pinn): #{{{
 
     plt.show()
     #}}}
+def plot_2D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
+    yts = 3600*24*365
+    X, Y = np.meshgrid(np.linspace(xlb[0],xub[0],200), np.linspace(xlb[1],xub[1], 200))
+    # obs
+    ux = yts*griddata(X_star, u_star[:,0].flatten(), (X, Y), method='cubic')
+    uy = yts*griddata(X_star, u_star[:,1].flatten(), (X, Y), method='cubic')
+    h_obs = griddata(X_star, u_star[:,2].flatten(), (X, Y), method='cubic')
+    H_obs = griddata(X_star, u_star[:,3].flatten(), (X, Y), method='cubic')
+    C_obs = griddata(X_star, u_star[:,4].flatten(), (X, Y), method='cubic')
+
+    # predicted solution
+    u_pred, v_pred, h, H, C_pred = pinn.predict(X_star)
+    u_nn = yts*griddata(X_star, u_pred[:,0].flatten(), (X, Y), method='cubic')
+    v_nn = yts*griddata(X_star, v_pred[:,0].flatten(), (X, Y), method='cubic')
+    C_nn = griddata(X_star, C_pred[:,0], (X, Y), method='cubic')
+    h_nn = griddata(X_star, h[:,0], (X, Y), method='cubic')
+    H_nn = griddata(X_star, H[:,0], (X, Y), method='cubic')
+
+    # residual
+    f1, f2 = pinn.f_model()
+    F1 = griddata(X_f, f1[:,0], (X, Y), method='cubic')
+    F2 = griddata(X_f, f2[:,0], (X, Y), method='cubic')
+
+    ###########################
+    plotData = {}
+    plotData['u obs'] = ux
+    plotData['v obs'] = uy
+    plotData['C - C obs'] = abs(C_nn) - abs(C_obs)
+    plotData['h - h obs'] = h_nn - h_obs
+    ###########################
+    plotData['u pred'] = u_nn
+    plotData['v pred'] = v_nn
+    plotData['C pred'] = abs(C_nn)
+    plotData['H - H obs'] = H_nn - H_obs
+    ###########################
+    plotData['u - u obs'] = u_nn - ux
+    plotData['v - v obs'] = v_nn - uy
+    plotData['f1 residual'] = F1
+    plotData['f2 residual'] = F2
+
+    fig, axs = plt.subplots(3, 4, figsize=(16,12))
+
+    for ax,name in zip(axs.ravel(), plotData.keys()):
+        vr = vranges.setdefault(name, [None, None])
+        im = ax.imshow(plotData[name], interpolation='nearest', cmap='rainbow',
+                extent=[X.min(), X.max(), Y.min(), Y.max()],
+                vmin=vr[0], vmax=vr[1],
+                origin='lower', aspect='auto')
+        ax.set_title(name)
+        fig.colorbar(im, ax=ax, shrink=1)
+
+    #ax.plot(pinn.X_bc[:,0], pinn.X_bc[:,1], 'k*', markersize = 2, clip_on = False)
+    plt.show()
+    #}}}
+def plot_1D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
+    yts = 3600*24*365
+    # ref solution
+    u_obs = u_star[:,0:1] * yts
+    h_obs = u_star[:,1:2]
+    H_obs = u_star[:,2:3]
+    C_obs = u_star[:,3:4]
+
+    # predicted solution, only look at X_star
+    u_pred, h_nn, H_nn, C_nn = pinn.predict(X_star)
+    u_nn = yts * u_pred
+
+    # residual
+    f1 = pinn.f_model()
+
+    ###########################
+    plotData = {}
+    plotData['u - u obs'] = u_nn - u_obs
+    plotData['h - h obs'] = h_nn - h_obs
+    plotData['H - H obs'] = H_nn - H_obs
+    ###########################
+    plotData['u'] = np.hstack((u_nn, u_obs))
+    plotData['h'] = np.hstack((h_nn, h_obs))
+    plotData['H'] = np.hstack((H_nn, H_obs))
+    ###########################
+    plotData['f1 residual'] = f1
+    plotData['C - C obs'] = abs(C_nn) - abs(C_obs)
+    plotData['C'] = np.hstack([abs(C_nn), abs(C_obs)])
+
+    fig, axs = plt.subplots(3, 3, figsize=(16,12))
+
+    for ax,name in zip(axs.ravel(), plotData.keys()):
+        if 'f1' in name:
+            im = ax.plot(X_f, plotData[name], 'o')
+        else:
+            im = ax.plot(X_star, plotData[name])
+        ax.set_title(name)
+
+    #ax.plot(pinn.X_bc[:,0], pinn.X_bc[:,1], 'k*', markersize = 2, clip_on = False)
+    plt.show()
+    #}}}
