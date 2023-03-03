@@ -320,7 +320,7 @@ class SSA1D_calvingfront_invertC(SSA1D): #{{{
         # sum the total
         totalloss = mse_u + mse_h + mse_H + mse_C + mse_f1
         return {"loss": totalloss, "mse_u": mse_u, "mse_h": mse_h, 
-                "mse_H": mse_H, "mse_C": mse_C, "mse_f1": mse_f1, "mse_fc1"} 
+                "mse_H": mse_H, "mse_C": mse_C, "mse_f1": mse_f1, "mse_fc1": mse_fc1} 
 
     @tf.function
     def test_error(self, X_star, u_star):
