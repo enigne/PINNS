@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from utils import *
 from equations import *
 
-def runme(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, seed=1234):
+def runme(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, repoPath = "./", seed=1234):
     # Manually making sure the numpy random seeds are "the same" on all devices {{{
     np.random.seed(seed)
     tf.random.set_seed(seed) #}}}
@@ -31,7 +31,6 @@ def runme(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, seed=123
     hp["save_history"] = True
     hp["history_frequency"] = 100
     # path for loading data and saving models
-    repoPath = "../"
     appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
     path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_flowline_CF.mat")
     
