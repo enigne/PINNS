@@ -6,11 +6,10 @@ import matplotlib.pyplot as plt
 from utils import *
 from equations import *
 
-def runme(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, repoPath = "./", seed=1234):
+def experiment_1D_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, seed=1234, log_frequency=1000, history_frequency=10):
     # Manually making sure the numpy random seeds are "the same" on all devices {{{
     np.random.seed(seed)
     tf.random.set_seed(seed) #}}}
-    
     # Hyper parameters {{{
     hp = {}
     # Data size on the solution u
@@ -26,11 +25,12 @@ def runme(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, repoPath
     hp["tf_eps"] = 1e-1
     # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
     hp["nt_epochs"] = epochLBFGS
-    hp["log_frequency"] = 10000
+    hp["log_frequency"] = log_frequency
     # Record the history
     hp["save_history"] = True
-    hp["history_frequency"] = 100
+    hp["history_frequency"] = history_frequency
     # path for loading data and saving models
+    repoPath = "./"
     appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
     path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_flowline_CF.mat")
     
