@@ -251,8 +251,11 @@ class NeuralNetwork(object):
         return tf.convert_to_tensor(X, dtype=self.dtype)
 
     def save(self):
-        if hasattr(self, 'model'):
-            self.model.save(self.modelPath)
+        '''
+        save the model and history of training
+        '''
+        self.model.save(self.modelPath)
+        self.logger.save(self.modelPath+"/history.json")
 
 # dummy/Struct gives Lua-like struct object with 0 defaults
 class dummy(object):

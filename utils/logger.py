@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 from datetime import datetime
 from typing import Dict
+import pickle
 
 class Logger(object):
     def __init__(self, hp):
@@ -75,3 +76,8 @@ class Logger(object):
         print(f"Training finished (epoch {epoch}): " +
               f"duration = {self.get_elapsed()}  " +
               f"error = {self.get_error_u():.4e}  " + custom)
+
+    def save(self, path):
+        with open(path, "wb") as f:
+            pickle.dump(self._history, f, pickle.HIGHEST_PROTOCOL)
+

@@ -603,7 +603,7 @@ def plot_Helheim_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
     #ax.plot(pinn.X_bc[:,0], pinn.X_bc[:,1], 'k*', markersize = 2, clip_on = False)
     plt.show()
     #}}}
-def plot_log_history(pinn): #{{{
+def plot_log_history(pinn, savePath=None): #{{{
 
     n = len(pinn.logger.history.keys())
     cols = 4
@@ -615,7 +615,10 @@ def plot_log_history(pinn): #{{{
         ax.axes.set_yscale('log')
         ax.legend(loc="best")
 
-    plt.show()
+    if savePath:
+        plt.savefig(savePath+"/history.png")
+    else:
+        plt.show()
     #}}}
 def plot_2D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
     yts = 3600*24*365
@@ -671,7 +674,7 @@ def plot_2D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
     #ax.plot(pinn.X_bc[:,0], pinn.X_bc[:,1], 'k*', markersize = 2, clip_on = False)
     plt.show()
     #}}}
-def plot_1D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
+def plot_1D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}, savePath=None): #{{{
     yts = 3600*24*365
     # ref solution
     u_obs = u_star[:,0:1] * yts
@@ -709,6 +712,8 @@ def plot_1D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
             im = ax.plot(X_star, plotData[name])
         ax.set_title(name)
 
-    #ax.plot(pinn.X_bc[:,0], pinn.X_bc[:,1], 'k*', markersize = 2, clip_on = False)
-    plt.show()
+    if savePath:
+        plt.savefig(savePath+"/1Dsolution.png")
+    else:
+        plt.show()
     #}}}
