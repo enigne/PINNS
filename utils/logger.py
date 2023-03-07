@@ -50,7 +50,7 @@ class Logger(object):
         self.model = model
         if model_description:
             print(model.summary())
-            print(model.loss_weights)
+            print(model.loss_weights.numpy())
 
     def log_train_epoch(self, epoch, loss_values, custom="", is_iter=False):
         if self.save_history:
