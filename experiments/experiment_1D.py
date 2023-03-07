@@ -43,7 +43,7 @@ def experiment_1D_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50
     x, Exact_vel, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu = prep_Helheim_data_flowline(path, hp["N_u"], hp["N_f"]) #}}}
     # Creating the model and training {{{
     logger = Logger(hp)
-    pinn = SSA1D_invertC(hp, logger, X_f,
+    pinn = SSA1D_calvingfront_invertC(hp, logger, X_f,
             X_bc, u_bc,
             X_cf, n_cf,
             xub, xlb, uub, ulb,
