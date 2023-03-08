@@ -60,7 +60,7 @@ class Logger(object):
                     loss_val = loss.numpy()
                     record.append(loss_val)
                 test_history = self._history.setdefault("test", [])
-                test_history.append(self.get_error_u())
+                test_history.append(self.get_error_u().numpy())
 
         if epoch % self.frequency == 0:
             name = 'nt_epoch' if is_iter else 'tf_epoch'
