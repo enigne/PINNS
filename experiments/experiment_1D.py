@@ -2,14 +2,16 @@ import os
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 from utils import *
 from equations import *
 
 def experiment_1D_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, seed=1234, log_frequency=1000, history_frequency=10):
     # Manually making sure the numpy random seeds are "the same" on all devices {{{
-    np.random.seed(seed)
-    tf.random.set_seed(seed) #}}}
+    if seed:
+        np.random.seed(seed)
+        tf.random.set_seed(seed) #}}}
     # Hyper parameters {{{
     hp = {}
     # Data size on the solution u
@@ -36,7 +38,10 @@ def experiment_1D_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50
     
     loss_weights = [10**(-w) for w in weights]
 
-    modelPath = "./Models/SSA1D_weights"+ "".join([str(w)+"_" for w in weights]) + "ADAM"+str(hp["tf_epochs"]) +"_BFGS"+str(hp["nt_epochs"])
+    now = datetime.now()
+    modelPath = "./Models/SSA1D_weights"+ "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
+    modelPath += ("_seed_" + str(seed) if seed else "")
+   # + "ADAM"+str(hp["tf_epochs"]) +"_BFGS"+str(hp["nt_epochs"])
     reloadModel = False # reload from previous training
     #}}}
     # load the data {{{
