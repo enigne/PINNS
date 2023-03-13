@@ -18,7 +18,9 @@ hp["N_u"] = 50
 # Collocation points size, where we’ll check for f = 0
 hp["N_f"] = 100
 # DeepNN topology (2-sized input [x t], 8 hidden layer of 20-width, 1-sized output [u]
-hp["layers"] = [1, 20, 20, 20, 20, 20, 20, 20, 20, 4]
+hp["layers"] = [1, 20, 20, 20, 20, 20, 20, 20, 20, 1]
+hp["h_layers"] = [1, 20, 20, 20, 20, 20, 20, 20, 20, 2]
+hp["C_layers"] = [1, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
 hp["tf_epochs"] = 1000
 hp["tf_lr"] = 0.001
@@ -44,7 +46,7 @@ x, Exact_vel, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, x
 
 # Creating the model and training
 logger = Logger(hp)
-pinn = SSA1D_invertC(hp, logger, X_f,
+pinn = SSA1D_3NN_calvingfront_invertC(hp, logger, X_f,
         X_bc, u_bc,
         X_cf, n_cf,
         xub, xlb, uub, ulb,
