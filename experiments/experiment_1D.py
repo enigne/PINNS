@@ -110,7 +110,7 @@ def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFG
     loss_weights = [10**(-w) for w in weights]
 
     now = datetime.now()
-    modelPath = "./Models/SSA1D_3NN_weights"+ "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
+    modelPath = "./Models/SSA1D_3NN_"+str(NLayers)+"x20_weights"+ "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
     modelPath += ("_seed_" + str(seed) if seed else "")
    # + "ADAM"+str(hp["tf_epochs"]) +"_BFGS"+str(hp["nt_epochs"])
     reloadModel = False # reload from previous training
