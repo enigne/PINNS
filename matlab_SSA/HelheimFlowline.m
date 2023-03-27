@@ -18,6 +18,7 @@ vx = repmat(flowline.vel', ny, 1).*yts;
 vy = zeros(size(vx));
 h = repmat(flowline.h', ny, 1);
 H = repmat(flowline.H', ny, 1);
+C = repmat(flowline.C', ny, 1);
 bed = h - H;
 
 % make it to a 2D plane
@@ -69,39 +70,6 @@ disp('   -- Smooth the ice surface with 20 L2 projections and then compute the s
 asurf    = averaging(md,md.geometry.surface,20); % maybe executing 20 L2 projection is ok
 [sx,sy,s]= slope(md,asurf); % slope 's' comes on elements
 sslope   = averaging(md,s,1); % average the slope once on the vertices, because 's' comes on elements, we need this data on vertices
-disp('   -- Set the lower bound of velocity, pressure and friction coefficient');
-min_velocity = 0;
-min_pressure = 0;
-min_friction_coef = 0.00;
-disp('   -- Process surface velocity data');
-vel      = md.inversion.vel_obs;
-flags    = (vel==0).*(md.mask.ice_levelset<0); % interpolate on the ice parts
-pos1     = find(flags);
-pos2     = find(~flags);
-vel(pos1)= griddata(md.mesh.x(pos2),md.mesh.y(pos2),vel(pos2),md.mesh.x(pos1),md.mesh.y(pos1)); % interpolating the velocities where vel==0
-vel      = max(vel,min_velocity); % setting minimum velocity value
-disp('   -- Calculate effective pressure and the initial pressure');
-Neff                       = (md.materials.rho_ice*md.geometry.thickness+md.materials.rho_water*md.geometry.base)*md.constants.g;
-Neff(find(Neff<=0))        = min_pressure; % setting minimum positve pressure
-md.initialization.pressure = md.materials.rho_ice*md.geometry.thickness*md.constants.g; % setting the initial pressure
-disp('   -- Deduce friction coefficient from driving stress');
-driving_stress          = md.materials.rho_ice*md.constants.g*md.geometry.thickness.*(sslope);
-md.friction.coefficient = sqrt(driving_stress./(Neff.*vel/md.constants.yts));
-md.friction.coefficient = min(md.friction.coefficient,300);
-md.friction.p           = ones(md.mesh.numberofelements,1);
-md.friction.q           = ones(md.mesh.numberofelements,1);
-md.friction.coupling = 2; % will be a default setting later, coupling=0 will give non-physical water pressure when above sea level.
-disp('   -- Extrapolate on ice free regions (using griddata)');
-flags = (md.mask.ice_levelset>0); % no ice
-pos1  = find(flags);
-pos2  = find(~flags);
-md.friction.coefficient(pos1) = griddata(md.mesh.x(pos2),md.mesh.y(pos2),md.friction.coefficient(pos2),md.mesh.x(pos1),md.mesh.y(pos1));
-pos = find(isnan(md.friction.coefficient) | md.friction.coefficient <=0);
-md.friction.coefficient(pos)  = min_friction_coef;
-% set the no ice area and negative effective pressure area to have minimal friction coef
-md.friction.coefficient(pos1)  = min_friction_coef;
-md.friction.coefficient(pos1)  = min_friction_coef;
-md.friction.coefficient(Neff<=0)  = min_friction_coef;
 
 % set rheology
 disp('   Creating flow law parameters (assume ice is at -5°C for now)');
@@ -121,20 +89,69 @@ md.stressbalance.spcvy(pos)=md.initialization.vy(pos);
 md.stressbalance.spcvz(pos)=0;
 
 
+disp('   Initial basal friction ');
+md.friction = frictionweertman();
+md.friction.m = 3.0*ones(md.mesh.numberofelements,1);
+ref_C = InterpFromGrid(x,y,C,md.mesh.x, md.mesh.y);
+md.friction.C = 2000*ones(md.mesh.numberofvertices,1);
+
+%No friction on PURELY ocean element
+pos_e = find(min(md.mask.ice_levelset(md.mesh.elements),[],2)<0);
+flags=ones(md.mesh.numberofvertices,1);
+flags(md.mesh.elements(pos_e,:))=0;
+md.friction.C(find(flags))=0.0;
+
+md=setflowequation(md,'SSA','all');
+
+md.mask.ocean_levelset = ones(md.mesh.numberofvertices,1);
+md.cluster=generic('name',oshostname(),'np',40);
+md.miscellaneous.name = ['test'];
+
+%Control general
+md.inversion=m1qn3inversion(md.inversion);
+md.inversion.iscontrol=1;
+md.verbose=verbose('solution',false,'control',true);
+md.transient.amr_frequency = 0;
+
+%Cost functions
+md.inversion.cost_functions=[101 103 501];
+md.inversion.cost_functions_coefficients=zeros(md.mesh.numberofvertices,numel(md.inversion.cost_functions));
+md.inversion.cost_functions_coefficients(:,1)=1000;
+md.inversion.cost_functions_coefficients(:,2)=180;
+md.inversion.cost_functions_coefficients(:,3)=3e-8;
+pos=find(md.mask.ice_levelset>0);
+md.inversion.cost_functions_coefficients(pos,1:2)=0;
+
+%Controls
+md.inversion.control_parameters={'FrictionC'};
+md.inversion.maxsteps=500;
+md.inversion.maxiter =500;
+md.inversion.min_parameters=0.01*ones(md.mesh.numberofvertices,1);
+md.inversion.max_parameters=5e4*ones(md.mesh.numberofvertices,1);
+md.inversion.control_scaling_factors=1;
+md.inversion.dxmin = 0.01;
+%Additional parameters
+md.stressbalance.restol=0.01;
+md.stressbalance.reltol=0.1;
+md.stressbalance.abstol=NaN;
+
+md.toolkits.DefaultAnalysis=bcgslbjacobioptions();
+md=solve(md,'Stressbalance');
+
+ratio = [10,5,1];
+% get a direction to update cost coeff
+newCoeff = updateCostCoeff(md, ratio);
+disp(sprintf('With the given ratio %d, %d, %d \n', ratio))
+disp(sprintf('The coefficients can be updated to %g,   %g,   %g \n', newCoeff))
+
+%Put results back into the model
+md.friction.C=md.results.StressbalanceSolution.FrictionC;
+md.initialization.vx=md.results.StressbalanceSolution.Vx;
+md.initialization.vy=md.results.StressbalanceSolution.Vy;
 return
 
 
-md=parameterize(md,'./Par/SquareSheetShelf.par');
-md=setflowequation(md,'SSA','all');
-md=SetMarineIceSheetBC(md,'./Exp/SquareFront.exp');
-L = 5e5;
-md.friction.coefficient = ( 100+50*(sin(2*pi*md.mesh.x/L).*cos(2*pi*md.mesh.y/L)));
-md.friction.p = 3*ones(md.mesh.numberofelements,1);
-md.friction.q = zeros(md.mesh.numberofelements,1);
-md.mask.ocean_levelset = ones(md.mesh.numberofvertices,1);
 
-md.cluster=generic('name',oshostname(),'np',4);
-md=solve(md,'Stressbalance');
 
 x = md.mesh.x;
 y = md.mesh.y;
