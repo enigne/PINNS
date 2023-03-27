@@ -116,7 +116,7 @@ md.inversion.cost_functions=[101 103 501];
 md.inversion.cost_functions_coefficients=zeros(md.mesh.numberofvertices,numel(md.inversion.cost_functions));
 md.inversion.cost_functions_coefficients(:,1)=1000;
 md.inversion.cost_functions_coefficients(:,2)=180;
-md.inversion.cost_functions_coefficients(:,3)=3e-8;
+md.inversion.cost_functions_coefficients(:,3)=1.5e-8;
 pos=find(md.mask.ice_levelset>0);
 md.inversion.cost_functions_coefficients(pos,1:2)=0;
 
@@ -127,7 +127,7 @@ md.inversion.maxiter =500;
 md.inversion.min_parameters=0.01*ones(md.mesh.numberofvertices,1);
 md.inversion.max_parameters=5e4*ones(md.mesh.numberofvertices,1);
 md.inversion.control_scaling_factors=1;
-md.inversion.dxmin = 0.01;
+md.inversion.dxmin = 1e-6;
 %Additional parameters
 md.stressbalance.restol=0.01;
 md.stressbalance.reltol=0.1;
@@ -176,7 +176,7 @@ subplot(3,1,3)
 plot(x, C)
 
 % save
-savefile = ['./DATA/Helheim_Weertman_iT080_PINN_flowline_CF_2dInv.amt'];
+savefile = ['./DATA/Helheim_Weertman_iT080_PINN_flowline_CF_2dInv.mat'];
 disp(['  Saving to ', savefile]);
 save(savefile, ...
 	'x', 'vel', 'C', 'h', 'H', 'mu', 'DBC', 'icemask', ...      % obs data
