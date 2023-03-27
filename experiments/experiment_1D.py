@@ -34,7 +34,7 @@ def experiment_1D_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50
     # path for loading data and saving models
     repoPath = "./"
     appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-    path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_flowline_CF.mat")
+    path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_flowline_CF_2dInv.mat")
     
     loss_weights = [10**(-w) for w in weights]
 
@@ -105,7 +105,7 @@ def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFG
     # path for loading data and saving models
     repoPath = "./"
     appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-    path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_flowline_CF.mat")
+    path = os.path.join(appDataPath, "Helheim_Weertman_iT080_PINN_flowline_CF_2dInv.mat")
     
     loss_weights = [10**(-w) for w in weights]
 
