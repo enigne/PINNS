@@ -1,6 +1,8 @@
 import itertools
 import pickle
-from os import listdir
+import os
+import numpy as np
+from utils import *
 from math import sqrt
 import matplotlib.pyplot as plt
 
@@ -41,7 +43,10 @@ if __name__ == "__main__":
     # load C true solution
     path = os.path.join("./matlab_SSA/DATA/Helheim_Weertman_iT080_PINN_flowline_CF_2dInv.mat")
     x, Exact_vel, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu = prep_Helheim_data_flowline(path, 50, 100) 
-
+    C_true = u_star[:,3:4]
+    Cnorm = np.linalg.norm(C_true, 2)
+    NC = len(C_true)
+    
     # weights: u, h/H, C, f1, fc1 
     wu = [5]
     wh = [3]
@@ -55,30 +60,34 @@ if __name__ == "__main__":
     errorDict = {}
 
     # create the (key,weights) pair
-    keys = ['mse_u', 'mse_h', 'mse_H', 'mse_C', 'mse_f1', 'mse_fc1']
-    wids = [0, 1, 1, 2, 3, 4]
+    keys = ['mse_u', 'mse_h', 'mse_H', 'mse_f1', 'mse_fc1', 'test']
+    wids = [0, 1, 1, 3, 4]
     
     # loop through experiments 
     for weights in weightsList:
-        # compute the weights
-        loss_weights = [10**(-weights[i]) for i in wids]
         # load all history data
         dataList = load_history_at_weights(weights, prefix="SSA1D_3NN_4x20_weights")
+        # compute the weights
+        loss_weights = [10**(-weights[i]) for i in wids]        
         # get the error in the final epoch
         final_epoch = [upscale_by_weights(get_final_errors(data), keys, loss_weights) for data in dataList]
         
+        # adjuest the test resutls
+        for e in final_epoch:
+            e['test'] = (e['test']*Cnorm)**2/NC
         # save data
         errorDict[weights] = {key: [i[key] for i in final_epoch] for key in final_epoch[0]}
 
     # plot
     fig, axs = plt.subplots(5, 5, figsize=(20,16))
-
+    
     # colors indicates different weights combinations
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
-
+    
     # PIN
-    features = ['mse_u', 'mse_h', 'mse_H', 'mse_f1', 'mse_fc1','mse_C']
-
+    features = ['mse_u', 'mse_h', 'mse_H', 'mse_f1', 'mse_fc1', 'test']
+    lims = [[1e3, 1e8], [1e1, 1e6], [1e1, 1e6], [1e-1, 1e10], [1,1e18], [1e4,1e6]]
+    
     for cid, weights in enumerate(weightsList):
         err=errorDict[weights]
         label = '$w_f=10^{-'+str(weights[3])+'}$'
@@ -86,16 +95,18 @@ if __name__ == "__main__":
         for i in range(len(features)-1):
             for j in range(i,len(features)-1):
                 ax = axs[i][j]
-                ax.scatter(err[features[j+1]], err[features[i]], c=colors[cid], label=label)
+                ax.scatter(err[features[j+1]], err[features[i]], c=colors[cid], label=label)    
                 ax.set_xscale('log')
+                ax.set_xlim(lims[j+1])
                 ax.set_yscale('log')
-
+                ax.set_ylim(lims[i])
+                
         # add labels
         for i in range(len(features)-1):
             ax = axs[i][0]
             ax.set_ylabel(features[i])
         for j in range(len(features)-1):
             ax = axs[-1][j]
-            ax.set_xlabel(features[j+1])
-
+            ax.set_xlabel(features[j+1])   
+            
     ax.legend(bbox_to_anchor=(1.1, 1.5))
