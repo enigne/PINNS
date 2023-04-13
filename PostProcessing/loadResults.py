@@ -1,3 +1,4 @@
+# %load PostProcessing/loadResults.py
 import itertools
 import pickle
 import os
@@ -20,7 +21,7 @@ def load_history_at_weights(weights, projPath="./Models/", prefix="SSA1D_weights
     load all history data with given weights 
     '''
     # get all the folders in the projPath
-    foldersList = listdir(projPath)
+    foldersList = os.listdir(projPath)
 
     # get filename pattern
     filename_pattern = prefix + "".join([str(w)+"_" for w in weights])
@@ -51,9 +52,9 @@ if __name__ == "__main__":
     wu = [5]
     wh = [3]
     wC = [5]
-    wf1 = list(range(2,10))  # 10
+    wf1 = list(range(2,18,2))  # 10
  
-    weightsList = [(wu[0],wh[0],wC[0], w, w+14) for w in wf1] 
+    weightsList = [(wu[0],wh[0],wC[0], w, w+10) for w in wf1] 
     
     # initialization
     dataList = []
@@ -66,7 +67,7 @@ if __name__ == "__main__":
     # loop through experiments 
     for weights in weightsList:
         # load all history data
-        dataList = load_history_at_weights(weights, prefix="SSA1D_3NN_4x20_weights")
+        dataList = load_history_at_weights(weights, prefix="SSA1D_3NN_6x20_weights")
         # compute the weights
         loss_weights = [10**(-weights[i]) for i in wids]        
         # get the error in the final epoch
@@ -86,7 +87,7 @@ if __name__ == "__main__":
     
     # PIN
     features = ['mse_u', 'mse_h', 'mse_H', 'mse_f1', 'mse_fc1', 'test']
-    lims = [[1e3, 1e8], [1e1, 1e6], [1e1, 1e6], [1e-1, 1e10], [1,1e18], [1e4,1e6]]
+    lims = [[1e3, 1e8], [1e0, 1e6], [1e0, 1e6], [1e-1, 1e13], [1,1e18], [1e4,1e6]]
     
     for cid, weights in enumerate(weightsList):
         err=errorDict[weights]
