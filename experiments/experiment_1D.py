@@ -74,7 +74,7 @@ def experiment_1D_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50
     plot_log_history(pinn, modelPath)
     #}}}
     #}}}
-def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, seed=1234, log_frequency=1000, history_frequency=10, NLayers=8): #{{{
+def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, seed=1234, log_frequency=1000, history_frequency=10, NLayers=8, noiseLevel=0): #{{{
     # Manually making sure the numpy random seeds are "the same" on all devices {{{
     if seed:
         np.random.seed(seed)
@@ -110,7 +110,11 @@ def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFG
     loss_weights = [10**(-w) for w in weights]
 
     now = datetime.now()
-    modelPath = "./Models/SSA1D_3NN_"+str(NLayers)+"x20_weights"+ "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
+    if noiseLevel > 0:
+        modelPath = "./Models/SSA1D_3NN_"+str(NLayers)+"x20_noise"+str(noiseLevel) + "_weights" + "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
+    else:
+        modelPath = "./Models/SSA1D_3NN_"+str(NLayers)+"x20_weights"+ "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
+        
     modelPath += ("_seed_" + str(seed) if seed else "")
    # + "ADAM"+str(hp["tf_epochs"]) +"_BFGS"+str(hp["nt_epochs"])
     reloadModel = False # reload from previous training
@@ -127,12 +131,18 @@ def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFG
             mu=mu,
             loss_weights=loss_weights)
     
+    # error function for logger
     X_u = pinn.tensor(X_star)
     u = pinn.tensor(u_star)
-    # error function for logger
     def error():
         return pinn.test_error(X_u, u)
     logger.set_error_fn(error)
+    # }}}
+    # Add noise to the obs data {{{
+    if noiseLevel > 0:
+        ns = tf.random.uniform(u_train.shape, dtype=tf.float64)
+        noise = 1.0 + noiseLevel * (1.0-2.0*ns)
+        u_train = noise * u_train
     # }}}
     # train the model {{{
     pinn.fit(X_u_train, u_train)
