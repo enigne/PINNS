@@ -74,7 +74,7 @@ def experiment_1D_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50
     plot_log_history(pinn, modelPath)
     #}}}
     #}}}
-def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, seed=1234, log_frequency=1000, history_frequency=10, NLayers=8, noiseLevel=0): #{{{
+def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, seed=1234, log_frequency=1000, history_frequency=10, NLayers=8, noiseLevel=[]): #{{{
     # Manually making sure the numpy random seeds are "the same" on all devices {{{
     if seed:
         np.random.seed(seed)
@@ -139,7 +139,10 @@ def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFG
     logger.set_error_fn(error)
     # }}}
     # Add noise to the obs data {{{
-    if noiseLevel > 0:
+    if type(noiseLevel) != list:
+        noiseLevel = [] # set to no noise
+
+    if len(noiseLevel) > 0:
         ns = tf.random.uniform(u_train.shape, dtype=tf.float64)
         noise = 1.0 + noiseLevel * (1.0-2.0*ns)
         u_train = noise * u_train
