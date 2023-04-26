@@ -110,8 +110,13 @@ def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFG
     loss_weights = [10**(-w) for w in weights]
 
     now = datetime.now()
-    if noiseLevel > 0:
-        modelPath = "./Models/SSA1D_3NN_"+str(NLayers)+"x20_noise"+str(noiseLevel) + "_weights" + "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
+
+    # check the input
+    if type(noiseLevel) != list:
+        noiseLevel = [] # set to no noise
+
+    if noiseLevel:
+        modelPath = "./Models/SSA1D_3NN_"+str(NLayers)+"x20_noise_" + "".join([str(i)+"_" for i in noiseLevel])+ "weights" + "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
     else:
         modelPath = "./Models/SSA1D_3NN_"+str(NLayers)+"x20_weights"+ "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
         
@@ -139,10 +144,7 @@ def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFG
     logger.set_error_fn(error)
     # }}}
     # Add noise to the obs data {{{
-    if type(noiseLevel) != list:
-        noiseLevel = [] # set to no noise
-
-    if len(noiseLevel) > 0:
+    if noiseLevel:
         ns = tf.random.uniform(u_train.shape, dtype=tf.float64)
         noise = 1.0 + noiseLevel * (1.0-2.0*ns)
         u_train = noise * u_train
