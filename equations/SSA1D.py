@@ -446,3 +446,118 @@ class SSA1D_3NN_calvingfront_invertC(SSA1D): #{{{
         return self.model.summary(),self.h_model.summary(), self.C_model.summary()
 
     #}}}
+class SSA1D_3NN_solve_vel(SSA1D): #{{{
+    '''
+    class of inverting C from observed u, as well as h and H, with no calving front boundary
+    '''
+    def __init__(self, hp, logger, X_f, 
+            X_bc, u_bc, X_cf, n_cf, 
+            xub, xlb, uub, ulb, 
+            modelPath, reloadModel,
+            mu, n=3.0, 
+            loss_weights=[1e-5, 1e-3, 1e-5, 1e-8, 1e-18]):
+        super().__init__(hp, logger, X_f, 
+                X_bc, u_bc, X_cf, n_cf,
+                xub, xlb, uub[0:1], ulb[0:1],
+                modelPath, reloadModel,
+                mu, loss_weights=loss_weights)
+        # hp["h_layers"] defines h and H model
+        self.h_model = create_NN(hp["h_layers"], inputRange=(xlb, xub), outputRange=(ulb[1:3], uub[1:3]))
+
+        # hp["C_layers"] defines C model
+        self.C_model = create_NN(hp["C_layers"], inputRange=(xlb, xub), outputRange=(ulb[3:4], uub[3:4]))
+
+        self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.C_model.layers[1:-1])
+        self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.C_model.trainable_variables
+
+    # need to overwrite nn_model, which is used in computing the loss function
+    @tf.function
+    def nn_model(self, X):
+        '''
+        get the velocity and derivative prediction from the NN
+        '''
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(X)
+
+            u = self.model(X)
+
+            hsol = self.h_model(X)
+            h = hsol[:, 0:1]
+            H = hsol[:, 1:2]
+
+            C = self.C_model(X)
+
+        u_x = tape.gradient(u, X)
+        del tape
+
+        return u, u_x, h, H, C
+
+    @tf.function
+    def loss(self, uv, X_u):
+        '''
+        loss = |h-hobs|+|H-Hobs|+|C-Cobs|+|f1|
+        '''
+        # Dirichlet B.C. for u
+        u0 = self.u_bc[:, 0:1]
+        u0_pred = self.model(self.X_bc)
+
+        # match h, H, and C to the training data
+        h0 = uv[:,1:2]
+        H0 = uv[:,2:3]
+        C0 = uv[:,3:4]
+
+        hH_pred = self.h_model(X_u)
+        h0_pred = hH_pred[:,0:1]
+        H0_pred = hH_pred[:,1:2]
+        C0_pred = self.C_model(X_u)
+
+        # f_model on the collocation points 
+        f1_pred = self.f_model()
+        # calving front
+        fc1_pred = self.cf_model(self.X_cf, self.n_cf)
+
+        # velocity misfit at B.C.
+        mse_u = self.loss_weights[0]*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        # geometry misfit
+        mse_h = self.loss_weights[1]*tf.reduce_mean(tf.square(h0 - h0_pred))
+        mse_H = self.loss_weights[1]*tf.reduce_mean(tf.square(H0 - H0_pred))
+        # friction misfit
+        mse_C = self.loss_weights[2]*tf.reduce_mean(tf.square(C0 - C0_pred))
+        # residual of PDE
+        mse_f1 = self.loss_weights[3]*tf.reduce_mean(tf.square(f1_pred))
+        # calving front boundary
+        mse_fc1 = self.loss_weights[4]*tf.reduce_mean(tf.square(fc1_pred))
+
+        # sum the total
+        totalloss = mse_u + mse_h + mse_H + mse_C + mse_f1 + mse_fc1
+        return {"loss": totalloss, "mse_u": mse_u, "mse_h": mse_h, 
+                "mse_H": mse_H, "mse_C": mse_C, "mse_f1": mse_f1, "mse_fc1": mse_fc1} 
+
+    @tf.function
+    def test_error(self, X_star, u_star):
+        '''
+        test error of u
+        '''
+        sol_pred = self.model(X_star)
+        return  tf.math.reduce_euclidean_norm(tf.math.abs(sol_pred) - tf.math.abs(u_star[:,0:1])) / tf.math.reduce_euclidean_norm(u_star[:,0:1])
+
+    def predict(self, X_star):
+        '''
+        return numpy array of the model
+        '''
+        u_pred = self.model(X_star)
+
+        hH_pred = self.h_model(X_star)
+        h_pred = hH_pred[:, 0:1]
+        H_pred = hH_pred[:, 1:2]
+        C_pred = self.C_model(X_star)
+
+        return u_pred.numpy(), h_pred.numpy(), H_pred.numpy(), C_pred.numpy()
+
+    def summary(self):
+        '''
+        output all model summaries
+        '''
+        return self.model.summary(),self.h_model.summary(), self.C_model.summary()
+
+    #}}}
