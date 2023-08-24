@@ -215,6 +215,9 @@ def prep_Helheim_data_all(path, N_u=None, N_f=None): #{{{
     # Reading SSA ref solutions: x, y-coordinates, usol and Hsol
     data = scipy.io.loadmat(path,  mat_dtype=True)
 
+    # viscosity
+    mu = data['mu']
+
     # Flatten makes [[]] into [], [:,None] makes it a column vector
     x = data['x'].flatten()[:,None]
     y = data['y'].flatten()[:,None]
@@ -273,7 +276,7 @@ def prep_Helheim_data_all(path, N_u=None, N_f=None): #{{{
     X_cf = np.hstack((cx.flatten()[:,None], cy.flatten()[:,None]))
     n_cf = np.hstack((nx.flatten()[:,None], ny.flatten()[:,None]))
 
-    return x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb  #}}}
+    return x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu  #}}}
 def prep_Helheim_Dirichlet(path, N_u=None, N_f=None): #{{{
     # Reading SSA ref solutions: x, y-coordinates, usol and Hsol
     data = scipy.io.loadmat(path,  mat_dtype=True)
