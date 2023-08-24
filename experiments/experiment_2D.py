@@ -128,7 +128,7 @@ def experiment_2D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFG
     x, Exact_vel, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu = prep_Helheim_data_flowline(path, hp["N_u"], hp["N_f"]) #}}}
     # Creating the model and training {{{
     logger = Logger(hp)
-    pinn = SSA1D_3NN_calvingfront_invertC(hp, logger, X_f,
+    pinn = SSA2D_3NN_calvingfront_invertC(hp, logger, X_f,
             X_bc, u_bc,
             X_cf, n_cf,
             xub, xlb, uub, ulb,
@@ -155,7 +155,7 @@ def experiment_2D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFG
     # save {{{
     pinn.save()
     # plot 
-    plot_1D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, savePath=modelPath)
+    plot_2D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, savePath=modelPath)
     # history
     plot_log_history(pinn, modelPath)
     #}}}

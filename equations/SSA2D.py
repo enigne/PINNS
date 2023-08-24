@@ -113,7 +113,7 @@ class SSA2D(NeuralNetwork): #{{{
                 
         # surface gradient
         s_x = tape.gradient(s, self.x_f)
-        s_y = tape.gradient(s, self.x_y)
+        s_y = tape.gradient(s, self.y_f)
 
         # Letting the tape go
         del tape
