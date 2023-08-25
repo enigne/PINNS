@@ -74,7 +74,7 @@ def experiment_1D_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50
     plot_log_history(pinn, modelPath)
     #}}}
     #}}}
-def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, seed=1234, log_frequency=1000, history_frequency=10, NLayers=8, noiseLevel=[]): #{{{
+def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFGS=50000, N_u=50, N_f=100, seed=1234, log_frequency=1000, history_frequency=10, NLayers=8, NNeurons=20, noiseLevel=[]): #{{{
     # Manually making sure the numpy random seeds are "the same" on all devices {{{
     if seed:
         np.random.seed(seed)
@@ -85,12 +85,12 @@ def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFG
     hp["N_u"] = N_u
     # Collocation points size, where we’ll check for f = 0
     hp["N_f"] = N_f
-    # DeepNN topology (1-sized input [x], NLayers hidden layer of 20-width, 1-sized output [u]
-    hp["layers"] = [1]+[20]*NLayers+[1]
-    # DeepNN topology (1-sized input [x], NLayers hidden layer of 20-width, 2-sized output [h, H]
-    hp["h_layers"] = [1]+[20]*NLayers+[2]
-    # DeepNN topology (1-sized input [x], NLayers hidden layer of 20-width, 1-sized output [C]
-    hp["C_layers"] = [1]+[20]*NLayers+[1]
+    # DeepNN topology (1-sized input [x], NLayers hidden layer of NNeurons-width, 1-sized output [u]
+    hp["layers"] = [1]+[NNeurons]*NLayers+[1]
+    # DeepNN topology (1-sized input [x], NLayers hidden layer of NNeurons-width, 2-sized output [h, H]
+    hp["h_layers"] = [1]+[NNeurons]*NLayers+[2]
+    # DeepNN topology (1-sized input [x], NLayers hidden layer of NNeurons-width, 1-sized output [C]
+    hp["C_layers"] = [1]+[NNeurons]*NLayers+[1]
     # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
     hp["tf_epochs"] = epochADAM
     hp["tf_lr"] = 0.001
@@ -116,9 +116,9 @@ def experiment_1D_3NN_hyperparameter_search(weights, epochADAM=100000, epochLBFG
         noiseLevel = [] # set to no noise
 
     if noiseLevel:
-        modelPath = "./Models/SSA1D_3NN_"+str(NLayers)+"x20_noise_" + "".join([str(i)+"_" for i in noiseLevel])+ "weights" + "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
+        modelPath = "./Models/SSA1D_3NN_"+str(NLayers)+"x"+str(NNeurons)+"_noise_" + "".join([str(i)+"_" for i in noiseLevel])+ "weights" + "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
     else:
-        modelPath = "./Models/SSA1D_3NN_"+str(NLayers)+"x20_weights"+ "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
+        modelPath = "./Models/SSA1D_3NN_"+str(NLayers)+"x"+str(NNeurons)+"_weights"+ "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
         
     modelPath += ("_seed_" + str(seed) if seed else "")
    # + "ADAM"+str(hp["tf_epochs"]) +"_BFGS"+str(hp["nt_epochs"])

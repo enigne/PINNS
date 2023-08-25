@@ -620,7 +620,7 @@ def plot_log_history(pinn, savePath=None): #{{{
     else:
         plt.show()
     #}}}
-def plot_2D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
+def plot_2D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}, savePath=None): #{{{
     yts = 3600*24*365
     X, Y = np.meshgrid(np.linspace(xlb[0],xub[0],200), np.linspace(xlb[1],xub[1], 200))
     # obs
@@ -671,8 +671,10 @@ def plot_2D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}): #{{{
         ax.set_title(name)
         fig.colorbar(im, ax=ax, shrink=1)
 
-    #ax.plot(pinn.X_bc[:,0], pinn.X_bc[:,1], 'k*', markersize = 2, clip_on = False)
-    plt.show()
+    if savePath:
+        plt.savefig(savePath+"/2Dsolution.png")
+    else:
+        plt.show()
     #}}}
 def plot_1D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, vranges={}, savePath=None): #{{{
     yts = 3600*24*365
