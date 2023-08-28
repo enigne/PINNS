@@ -135,7 +135,7 @@ class SSA2D(NeuralNetwork): #{{{
         '''
         # normal direction
         nx = nn[:, 0:1]
-        ny = nn[:, 0:2]
+        ny = nn[:, 1:2]
 
         # viscosity
         mu = self.mu
@@ -351,7 +351,7 @@ class SSA2D_3NN_calvingfront_invertC(SSA2D): #{{{
         H_pred = sH_pred[:, 1:2]
         C_pred = self.C_model(X_star)
 
-        return u_pred.numpy(), u_pred.numpy(), s_pred.numpy(), H_pred.numpy(), C_pred.numpy()
+        return u_pred.numpy(), v_pred.numpy(), s_pred.numpy(), H_pred.numpy(), C_pred.numpy()
 
     def summary(self):
         '''
