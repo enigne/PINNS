@@ -585,10 +585,13 @@ class SSA1D_frictionNN(SSA1D): #{{{
         # hp["C_layers"] defines C model
         fri_lb = ulb[3:4]*ulb[0:1]**(1.0/n)
         fri_ub = uub[3:4]*uub[0:1]**(1.0/n)
-        self.friction_model = create_NN(hp["friction_layers"], inputRange=(np.concatenate([ulb[0:1],ulb[3:4]]), np.concatenate([uub[0:1],uub[3:4]])), outputRange=(fri_lb, fri_ub))
+        #self.friction_model = create_NN(hp["friction_layers"], inputRange=(np.concatenate([ulb[0:1],ulb[3:4]]), np.concatenate([uub[0:1],uub[3:4]])), outputRange=(fri_lb, fri_ub))
+        self.friction_model = create_NN(hp["friction_layers"], inputRange=([ulb[0:3], uub[0:3]), outputRange=(fri_lb, fri_ub))
 
-        self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.C_model.layers[1:-1]) + (self.friction_model.layers[1:-1])
-        self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.C_model.trainable_variables + self.friction_model.trainable_variables
+        #self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.C_model.layers[1:-1]) + (self.friction_model.layers[1:-1])
+        #self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.C_model.trainable_variables + self.friction_model.trainable_variables
+        self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.friction_model.layers[1:-1])
+        self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.friction_model.trainable_variables
 
     # need to overwrite nn_model, which is used in computing the loss function
     @tf.function
@@ -648,7 +651,7 @@ class SSA1D_frictionNN(SSA1D): #{{{
         del tape
 
         # use NN to predict the basal stress
-        tempX = tf.concat([u,C], axis=1)
+        tempX = tf.concat([u,h,H], axis=1)
         taub = self.friction_model(tempX) 
 
         f1 = sigma11 - taub - self.rhoi*self.g*H*h_x
