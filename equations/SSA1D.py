@@ -586,7 +586,7 @@ class SSA1D_frictionNN(SSA1D): #{{{
         fri_lb = ulb[3:4]*ulb[0:1]**(1.0/n)
         fri_ub = uub[3:4]*uub[0:1]**(1.0/n)
         #self.friction_model = create_NN(hp["friction_layers"], inputRange=(np.concatenate([ulb[0:1],ulb[3:4]]), np.concatenate([uub[0:1],uub[3:4]])), outputRange=(fri_lb, fri_ub))
-        self.friction_model = create_NN(hp["friction_layers"], inputRange=([ulb[0:3], uub[0:3]), outputRange=(fri_lb, fri_ub))
+        self.friction_model = create_NN(hp["friction_layers"], inputRange=(ulb[0:3], uub[0:3]), outputRange=(fri_lb, fri_ub))
 
         #self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.C_model.layers[1:-1]) + (self.friction_model.layers[1:-1])
         #self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.C_model.trainable_variables + self.friction_model.trainable_variables
