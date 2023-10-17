@@ -561,7 +561,7 @@ class SSA1D_3NN_solve_vel(SSA1D): #{{{
         return self.model.summary(),self.h_model.summary(), self.C_model.summary()
 
     #}}}
-class SSA1D_frictionNN(SSA1D): #{{{
+class SSA1D_frictionNN_saved(SSA1D): #{{{
     '''
     class of learning friction laws from observed u, H, and h, and PDEs
     '''
@@ -582,16 +582,17 @@ class SSA1D_frictionNN(SSA1D): #{{{
         # hp["C_layers"] defines C model
         self.C_model = create_NN(hp["C_layers"], inputRange=(xlb, xub), outputRange=(ulb[3:4], uub[3:4]))
 
-        # hp["C_layers"] defines C model
-        fri_lb = ulb[3:4]*ulb[0:1]**(1.0/n)
-        fri_ub = uub[3:4]*uub[0:1]**(1.0/n)
-        #self.friction_model = create_NN(hp["friction_layers"], inputRange=(np.concatenate([ulb[0:1],ulb[3:4]]), np.concatenate([uub[0:1],uub[3:4]])), outputRange=(fri_lb, fri_ub))
-        self.friction_model = create_NN(hp["friction_layers"], inputRange=(ulb[0:3], uub[0:3]), outputRange=(fri_lb, fri_ub))
+        # hp["friction_layers"] defines C model
+        fri_lb = (ulb[3:4]**2)*(ulb[0:1]**(1.0/n))
+        fri_ub = (uub[3:4]**2)*(uub[0:1]**(1.0/n))
+        self.friction_model = create_NN(hp["friction_layers"], inputRange=(np.concatenate([ulb[0:1],ulb[3:4]]), np.concatenate([uub[0:1],uub[3:4]])), outputRange=(fri_lb, fri_ub))
 
-        #self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.C_model.layers[1:-1]) + (self.friction_model.layers[1:-1])
-        #self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.C_model.trainable_variables + self.friction_model.trainable_variables
-        self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.friction_model.layers[1:-1])
-        self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.friction_model.trainable_variables
+        self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.C_model.layers[1:-1]) + (self.friction_model.layers[1:-1])
+        self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.C_model.trainable_variables + self.friction_model.trainable_variables
+        
+#         self.friction_model = create_NN(hp["friction_layers"], inputRange=(ulb[0:3], uub[0:3]), outputRange=(fri_lb, fri_ub))
+#         self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.friction_model.layers[1:-1])
+#         self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.friction_model.trainable_variables
 
     # need to overwrite nn_model, which is used in computing the loss function
     @tf.function
@@ -641,6 +642,10 @@ class SSA1D_frictionNN(SSA1D): #{{{
             etaH = eta * H
             B11 = etaH*(4*u_x)
 
+            # use NN to predict the basal stress
+            tempX = tf.concat([u, C], axis=1)
+            taub = self.friction_model(tempX) 
+        
         # Getting the other derivatives
         sigma11 = tape.gradient(B11, self.x_f)
 
@@ -650,12 +655,8 @@ class SSA1D_frictionNN(SSA1D): #{{{
         # Letting the tape go
         del tape
 
-        # use NN to predict the basal stress
-        tempX = tf.concat([u,h,H], axis=1)
-        taub = self.friction_model(tempX) 
-
-        f1 = sigma11 - taub - self.rhoi*self.g*H*h_x
-
+        u_norm = (u**2)**0.5
+        f1 = sigma11 - taub*u/(u_norm+1e-30) - self.rhoi*self.g*H*h_x
         return f1
 
 
@@ -665,16 +666,18 @@ class SSA1D_frictionNN(SSA1D): #{{{
         loss = |u-uobs|+|h-hobs|+|H-Hobs|+|f1|
         '''
         # Dirichlet B.C. for C
-        C0 = self.u_bc[:, 3:4]
-        C0_pred = self.C_model(self.X_bc)
+#         C0 = self.u_bc[:, 3:4]
+#         C0_pred = self.C_model(self.X_bc)
 
         # match h, H, and C to the training data
         u0 = uv[:,0:1]
         h0 = uv[:,1:2]
         H0 = uv[:,2:3]
+        C0 = uv[:,3:4]
 
         u0_pred = self.model(X_u)
         hH_pred = self.h_model(X_u)
+        C0_pred = self.C_model(X_u)
         h0_pred = hH_pred[:,0:1]
         H0_pred = hH_pred[:,1:2]
 
