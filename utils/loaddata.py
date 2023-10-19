@@ -398,3 +398,76 @@ def prep_Helheim_data_flowline(path, N_u=None, N_f=None): #{{{
     n_cf = np.hstack((nx.flatten()[:,None] ))
 
     return x, Exact_vel, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu  #}}}
+def prep_Helheim_transient(path, N_u=None, N_f=None): #{{{
+    # Reading SSA ref solutions: x, y-coordinates, usol and Hsol
+    data = scipy.io.loadmat(path,  mat_dtype=True)
+
+    # viscosity
+    mu = data['mu']
+
+    # Flatten makes [[]] into [], [:,None] makes it a column vector
+    x = data['x'].flatten()[:,None]
+    t = data['t'].flatten()[:,None]
+
+    # collocation points
+    X_f = np.real(data['X_f'])
+    idf = np.random.choice(X_f.shape[0], N_f, replace=False)
+    X_f = X_f[idf,:]
+
+    # real() is to make it float by default, in case of zeroes
+    Exact_vel = np.real(data['vel'].flatten()[:,None])
+    Exact_h = np.real(data['h'].flatten()[:,None])
+    Exact_H = np.real(data['H'].flatten()[:,None])
+    Exact_smb = np.real(data['smb'].flatten()[:,None])
+
+    # will be used for test
+    X_1d = np.real(data['x1d'].flatten()[:,None])
+    C_1d = np.real(data['C'].flatten()[:,None])
+
+    # boundary nodes
+    DBC = data['DBC'].flatten()[:,None]
+
+    # Preparing the inputs x and y for predictions in one single array, as X_star
+    X_star = np.hstack((x.flatten()[:,None], t.flatten()[:,None]))
+    # Preparing the testing u_star 
+    u_star = np.hstack((Exact_vel.flatten()[:,None], Exact_h.flatten()[:,None], Exact_H.flatten()[:,None], Exact_smb.flatten()[:,None] )) 
+
+
+    # Domain bounds: for regularization and generate training set
+    xlb = X_star.min(axis=0)
+    xub = X_star.max(axis=0) 
+    ulb = u_star.min(axis=0)
+    uub = u_star.max(axis=0) 
+
+    # set Dirichlet boundary conditions
+    idbc = np.transpose(np.asarray(DBC>0).nonzero())
+    X_bc = X_star[idbc[:,0],:]
+    u_bc = u_star[idbc[:,0],:]
+
+    # Stacking them in multidimensional tensors for training, only use ice covered area
+    icemask = data['icemask'].flatten()[:,None]
+    iice = np.transpose(np.asarray(icemask>0).nonzero())
+    X_train = np.vstack([X_star[iice[:,0],:]])
+    u_train = np.vstack([u_star[iice[:,0],:]])
+
+    # Generating a uniform random sample from ints between 0, and the size of x_u_train, of size N_u (initial data size) and without replacement (unique)
+    idx = np.random.choice(X_train.shape[0], N_u, replace=False)
+    # Getting the corresponding X_u_train (which is now scarce boundary/initial coordinates)
+    X_train = X_train[idx,:]
+    # Getting the corresponding u_train
+    u_train = u_train [idx,:]
+
+    # calving front info
+    cx = data['cx'].flatten()[:,None]
+    nx = data['nx'].flatten()[:,None]
+
+    X_cf = np.hstack((cx.flatten()[:,None] )) 
+    n_cf = np.hstack((nx.flatten()[:,None] ))
+
+    # X_star, u_star : true solutions 
+    # X_train, u_train : training data set
+    # X_1d, C_1d : true static solution, C
+    # X_f: colocation points
+    # X_bc, u_bc : boundary nodes
+    # X_cf, n_cf : cavling front positions and normal vector
+    return X_star, u_star, X_train, u_train, X_1d, C_1d, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu  #}}}
