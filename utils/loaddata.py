@@ -438,6 +438,10 @@ def prep_Helheim_transient(path, N_u=None, N_f=None): #{{{
     xub = X_star.max(axis=0) 
     ulb = u_star.min(axis=0)
     uub = u_star.max(axis=0) 
+    
+    # append lb and ub for C
+    ulb = np.append(ulb, C_1d.min(axis=0))
+    uub = np.append(uub, C_1d.max(axis=0))
 
     # set Dirichlet boundary conditions
     idbc = np.transpose(np.asarray(DBC>0).nonzero())
