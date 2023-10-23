@@ -463,9 +463,10 @@ def prep_Helheim_transient(path, N_u=None, N_f=None): #{{{
 
     # calving front info
     cx = data['cx'].flatten()[:,None]
+    ct = data['ct'].flatten()[:,None]
     nx = data['nx'].flatten()[:,None]
 
-    X_cf = np.hstack((cx.flatten()[:,None] )) 
+    X_cf = np.hstack((cx.flatten()[:,None], ct.flatten()[:,None])) 
     n_cf = np.hstack((nx.flatten()[:,None] ))
 
     # X_star, u_star : true solutions 
