@@ -968,7 +968,7 @@ class SSA2D_frictionNN_uvsH(SSA2D): #{{{
         # hp["friction_layers"] defines friction model
         fri_lb = (ulb[4:5]**2)*((ulb[0:1]**2.0+ulb[1:2]**2.0)**(0.5/n))
         fri_ub = (uub[4:5]**2)*((uub[0:1]**2.0+uub[1:2]**2.0)**(0.5/n))
-        self.friction_model = create_NN(hp["friction_layers"], inputRange=([ulb[0:4], uub[0:4]), outputRange=(fri_lb, fri_ub))
+        self.friction_model = create_NN(hp["friction_layers"], inputRange=(ulb[0:4], uub[0:4]), outputRange=(fri_lb, fri_ub))
 
         self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.friction_model.layers[1:-1])
         self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.friction_model.trainable_variables
