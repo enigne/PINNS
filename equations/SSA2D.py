@@ -362,7 +362,7 @@ class SSA2D_3NN_calvingfront_invertC(SSA2D): #{{{
     #}}}
 class SSA2D_3NN_solve_vel(SSA2D): #{{{
     '''
-    class of inverting C from observed u, as well as h and H, with no calving front boundary
+    class of solving u,v from s, H, C, with no calving front boundary
     '''
     def __init__(self, hp, logger, X_f, 
             X_bc, u_bc, X_cf, n_cf, 
@@ -390,21 +390,30 @@ class SSA2D_3NN_solve_vel(SSA2D): #{{{
         '''
         get the velocity and derivative prediction from the NN
         '''
+        x = X[:, 0:1]
+        y = X[:, 1:2]
         with tf.GradientTape(persistent=True) as tape:
-            tape.watch(X)
+            tape.watch(x)
+            tape.watch(y)
+            Xtemp = tf.concat([x, y], axis=1)
 
-            u = self.model(X)
+            uv_sol = self.model(Xtemp)
+            u = uv_sol[:, 0:1]
+            v = uv_sol[:, 1:2]
 
-            hsol = self.h_model(X)
-            h = hsol[:, 0:1]
-            H = hsol[:, 1:2]
+            sH_sol = self.h_model(Xtemp)
+            s = sH_sol[:, 0:1]
+            H = sH_sol[:, 1:2]
 
-            C = self.C_model(X)
+            C = self.C_model(Xtemp)
 
-        u_x = tape.gradient(u, X)
+        u_x = tape.gradient(u, x)
+        v_x = tape.gradient(v, x)
+        u_y = tape.gradient(u, y)
+        v_y = tape.gradient(v, y)
         del tape
 
-        return u, u_x, h, H, C
+        return u, v, u_x, v_x, u_y, v_y, s, H, C
 
     @tf.function
     def loss(self, uv, X_u):
@@ -413,39 +422,46 @@ class SSA2D_3NN_solve_vel(SSA2D): #{{{
         '''
         # Dirichlet B.C. for u
         u0 = self.u_bc[:, 0:1]
-        u0_pred = self.model(self.X_bc)
+        v0 = self.u_bc[:, 1:2]
+        uv_pred = self.model(self.X_bc)
+        u0_pred = uv_pred[:,0:1]
+        v0_pred = uv_pred[:,1:2]
 
         # match h, H, and C to the training data
-        h0 = uv[:,1:2]
-        H0 = uv[:,2:3]
-        C0 = uv[:,3:4]
+        s0 = uv[:,2:3]
+        H0 = uv[:,3:4]
+        C0 = uv[:,4:5]
 
-        hH_pred = self.h_model(X_u)
-        h0_pred = hH_pred[:,0:1]
-        H0_pred = hH_pred[:,1:2]
+        sH_pred = self.h_model(X_u)
+        s0_pred = sH_pred[:,0:1]
+        H0_pred = sH_pred[:,1:2]
         C0_pred = self.C_model(X_u)
 
         # f_model on the collocation points 
-        f1_pred = self.f_model()
+        f1_pred, f2_pred = self.f_model()
         # calving front
-        fc1_pred = self.cf_model(self.X_cf, self.n_cf)
+        fc1_pred, fc2_pred = self.cf_model(self.X_cf, self.n_cf)
 
-        # velocity misfit at B.C.
+        # velocity misfit
         mse_u = self.loss_weights[0]*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = self.loss_weights[0]*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
         # geometry misfit
-        mse_h = self.loss_weights[1]*tf.reduce_mean(tf.square(h0 - h0_pred))
+        mse_s = self.loss_weights[1]*tf.reduce_mean(tf.square(s0 - s0_pred))
         mse_H = self.loss_weights[1]*tf.reduce_mean(tf.square(H0 - H0_pred))
         # friction misfit
         mse_C = self.loss_weights[2]*tf.reduce_mean(tf.square(C0 - C0_pred))
         # residual of PDE
         mse_f1 = self.loss_weights[3]*tf.reduce_mean(tf.square(f1_pred))
+        mse_f2 = self.loss_weights[3]*tf.reduce_mean(tf.square(f2_pred))
         # calving front boundary
         mse_fc1 = self.loss_weights[4]*tf.reduce_mean(tf.square(fc1_pred))
+        mse_fc2 = self.loss_weights[4]*tf.reduce_mean(tf.square(fc2_pred))
 
         # sum the total
-        totalloss = mse_u + mse_h + mse_H + mse_C + mse_f1 + mse_fc1
-        return {"loss": totalloss, "mse_u": mse_u, "mse_h": mse_h, 
-                "mse_H": mse_H, "mse_C": mse_C, "mse_f1": mse_f1, "mse_fc1": mse_fc1} 
+        totalloss = mse_u + mse_v + mse_s + mse_H + mse_C + mse_f1 + mse_f2 + mse_fc1 + mse_fc2
+        return {"loss": totalloss, "mse_u": mse_u, "mse_v": mse_v, "mse_s": mse_s,
+                "mse_H": mse_H, "mse_C": mse_C, "mse_f1": mse_f1, "mse_f2": mse_f2,
+                "mse_fc1": mse_fc1, "mse_fc2": mse_fc2}
 
     @tf.function
     def test_error(self, X_star, u_star):
@@ -453,20 +469,22 @@ class SSA2D_3NN_solve_vel(SSA2D): #{{{
         test error of u
         '''
         sol_pred = self.model(X_star)
-        return  tf.math.reduce_euclidean_norm(tf.math.abs(sol_pred) - tf.math.abs(u_star[:,0:1])) / tf.math.reduce_euclidean_norm(u_star[:,0:1])
+        return  tf.math.reduce_euclidean_norm(tf.math.abs(sol_pred) - tf.math.abs(u_star[:,0:2])) / tf.math.reduce_euclidean_norm(u_star[:,0:2])
 
     def predict(self, X_star):
         '''
         return numpy array of the model
         '''
-        u_pred = self.model(X_star)
+        uv_pred = self.model(X_star)
+        u_pred = uv_pred[:, 0:1]
+        v_pred = uv_pred[:, 1:2]
 
-        hH_pred = self.h_model(X_star)
-        h_pred = hH_pred[:, 0:1]
-        H_pred = hH_pred[:, 1:2]
+        sH_pred = self.h_model(X_star)
+        s_pred = sH_pred[:, 0:1]
+        H_pred = sH_pred[:, 1:2]
         C_pred = self.C_model(X_star)
 
-        return u_pred.numpy(), h_pred.numpy(), H_pred.numpy(), C_pred.numpy()
+        return u_pred.numpy(), v_pred.numpy(), s_pred.numpy(), H_pred.numpy(), C_pred.numpy()
 
     def summary(self):
         '''
