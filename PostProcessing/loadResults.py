@@ -1,13 +1,43 @@
-# %load PostProcessing/loadResults.py
 import itertools
 import pickle
 import os
+import re
 import numpy as np
 from utils import *
 from math import sqrt
 import matplotlib.pyplot as plt
+import pandas as pd
 
+# Util functions {{{
+def getListOfVaribles(x, keyword='weights', length=5): #{{{
+    # find the index start with keyword
+    index = [i for i, s in enumerate(x) if keyword in s]
+    if len(index) == 1:
+        # max possible length to lookup
+        weights = x[index[0]:index[0]+length]
+        # remove keyword
+        weights[0] = weights[0].replace(keyword,'')
+        # try to convert
+        output = []
+        for s in weights:
+            if s:
+                try:
+                    output.append(float(s))
+                except:
+                    break
 
+        return output
+    else:
+        return [] #}}}
+def getFromRegex(x, expression): #{{{
+    # get the NN architecture
+    for s in x:
+        nn = re.search(expression, s)
+        if nn:
+            try:
+                return int(nn.group(0))
+            except:
+                return nn.group(0) #}}}
 def load_history(projPath, filename="history.json"): #{{{
     '''
     load history data
@@ -16,20 +46,6 @@ def load_history(projPath, filename="history.json"): #{{{
     with open(modelPath,  'rb') as f:
         data = pickle.load(f)
     return data#}}}
-def load_history_at_weights(weights, projPath="./Models/", prefix="SSA1D_weights", filename="history.json"): #{{{
-    '''
-    load all history data with given weights 
-    '''
-    # get all the folders in the projPath
-    foldersList = os.listdir(projPath)
-
-    # get filename pattern
-    filename_pattern = prefix + "".join([str(w)+"_" for w in weights])
-
-    # filter
-    filteredList = [f for f in foldersList if filename_pattern in f]
-
-    return [load_history(projPath+f) for f in filteredList] #}}}
 def get_final_errors(data): #{{{
     keys = data.keys()
     return {k:data[k][-1] for k in keys}
@@ -39,75 +55,127 @@ def upscale_by_weights(dataDict, keys, weights): #{{{
         dataDict[k] = (dataDict[k]/w) if k in dataDict else dataDict[k]
     return dataDict
     #}}}
+def getDataDict(wh, lossWeightDict=lossWeightDict, df=df, dwfc=10, wf=[], prefix=prefix, NN='3NN', neurons=20, layers=8, projPath="./Models_Kubeflow/Models/"): #{{{
+    # weights
+    wu = 5
+    wC = 5
+    # pick the intersetion of wf and the data in df
+    if not wf:
+        wf = np.sort(df[df['wh']==wh]['wf'].unique())
+    else:
+        wf = set(np.sort(df[df['wh']==wh]['wf'].unique()),).intersection(set(wf))
 
-if __name__ == "__main__":
-    # load C true solution
-    path = os.path.join("./matlab_SSA/DATA/Helheim_Weertman_iT080_PINN_flowline_CF_2dInv.mat")
-    x, Exact_vel, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu = prep_Helheim_data_flowline(path, 50, 100) 
-    C_true = u_star[:,3:4]
-    Cnorm = np.linalg.norm(C_true, 2)
-    NC = len(C_true)
-    
-    # weights: u, h/H, C, f1, fc1 
-    wu = [5]
-    wh = [3]
-    wC = [5]
-    wf1 = list(range(2,18,2))  # 10
- 
-    weightsList = [(wu[0],wh[0],wC[0], w, w+10) for w in wf1] 
-    
-    # initialization
-    dataList = []
-    errorDict = {}
+    weightsList = [(wu, wh, wC, w, w+dwfc) for w in wf]
+    dataDict = {}
 
-    # create the (key,weights) pair
-    keys = ['mse_u', 'mse_h', 'mse_H', 'mse_f1', 'mse_fc1', 'test']
-    wids = [0, 1, 1, 3, 4]
-    
-    # loop through experiments 
+    # get the (key,weights) pair
+    keys = [k for k in lossWeightDict.keys()]
+    wids = [lossWeightDict[k] for k in keys]
+
+    # loop through experiments
     for weights in weightsList:
         # load all history data
-        dataList = load_history_at_weights(weights, prefix="SSA1D_3NN_6x20_weights")
+        dataList = [load_history(projPath+name) for name in df[(df['wu']==weights[0]) &
+                                                 (df['wf']==weights[3]) &
+                                                 (df['prefix']==prefix) &
+                                                 (df['NN']==NN) &
+                                                 (df['neurons']==neurons) &
+                                                 (df['layers']==layers)
+                                                ]['Name']]
         # compute the weights
-        loss_weights = [10**(-weights[i]) for i in wids]        
+        loss_weights = [10**(-weights[i]) if i>-1 else 1 for i in wids]
         # get the error in the final epoch
         final_epoch = [upscale_by_weights(get_final_errors(data), keys, loss_weights) for data in dataList]
-        
+
         # adjuest the test resutls
         for e in final_epoch:
             e['test'] = (e['test']*Cnorm)**2/NC
+#             e['test'] = e['test']
         # save data
-        errorDict[weights] = {key: [i[key] for i in final_epoch] for key in final_epoch[0]}
+        dataDict[weights] = {key: [i[key] for i in final_epoch] for key in final_epoch[0]}
 
-    # plot
-    fig, axs = plt.subplots(5, 5, figsize=(20,16))
-    
     # colors indicates different weights combinations
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
-    
-    # PIN
-    features = ['mse_u', 'mse_h', 'mse_H', 'mse_f1', 'mse_fc1', 'test']
-    lims = [[1e3, 1e8], [1e0, 1e6], [1e0, 1e6], [1e-1, 1e13], [1,1e18], [1e4,1e6]]
-    
+    #    lims = [[1e3, 1e8], [1e0, 1e6], [1e0, 1e6], [1e-1, 1e13], [1,1e18], [1e4,1e6]]
+
+    features = keys
+    Nkey = len(keys)-1
+
+    # plot
+    fig, axs = plt.subplots(Nkey, Nkey, figsize=(20,16))
+
     for cid, weights in enumerate(weightsList):
-        err=errorDict[weights]
+        err=dataDict[weights]
         label = '$w_f=10^{-'+str(weights[3])+'}$'
 
-        for i in range(len(features)-1):
-            for j in range(i,len(features)-1):
+        for i in range(Nkey):
+            for j in range(i,Nkey):
                 ax = axs[i][j]
-                ax.scatter(err[features[j+1]], err[features[i]], c=colors[cid], label=label)    
+                ax.scatter(err[features[j+1]], err[features[i]], c=colors[cid], label=label)
                 ax.set_xscale('log')
-                ax.set_xlim(lims[j+1])
                 ax.set_yscale('log')
-                ax.set_ylim(lims[i])
-                
+#                 ax.set_xlim(lims[j+1])
+#                 ax.set_ylim(lims[i])
+
         # add labels
         for i in range(len(features)-1):
             ax = axs[i][0]
             ax.set_ylabel(features[i])
         for j in range(len(features)-1):
             ax = axs[-1][j]
-            ax.set_xlabel(features[j+1])   
-            
+            ax.set_xlabel(features[j+1])
+
     ax.legend(bbox_to_anchor=(1.1, 1.5))
+
+    return dataDict #}}}
+
+# find all the experiments folders
+projPath="./Models_Kubeflow/Models/"
+foldersList = os.listdir(projPath)
+df = pd.DataFrame(foldersList, columns=['Name'])
+
+# get info from the name
+df['sp'] = df['Name'].apply(lambda x: x.split('_'))
+df['prefix'] = df['Name'].apply(lambda x: x.split('NN')[0][:-2])
+df['NN'] = df['sp'].apply(lambda x: getFromRegex(x, r"^[0-9]NN$"))
+df['layers'] = df['sp'].apply(lambda x: getFromRegex(x, r"^[0-9]+(?=x[0-9]+$)"))
+df['neurons'] = df['sp'].apply(lambda x: getFromRegex(x, r"(?<=[0-9]x|[00-99]x)[0-9]+"))
+df['Date'] = df['sp'].apply(lambda x: x[-2])
+df['Time'] = df['sp'].apply(lambda x: x[-1])
+df['weights'] = df['sp'].apply(getListOfVaribles)
+df['wu'] = df['weights'].apply(lambda x: x[0] if x else 0)
+df['wh'] = df['weights'].apply(lambda x: x[1] if x else 0)
+df['wC'] = df['weights'].apply(lambda x: x[2] if x else 0)
+df['wf'] = df['weights'].apply(lambda x: x[3] if x else 0)
+df['wfc'] = df['weights'].apply(lambda x: x[4] if x else 0)
+df['noise'] = df['sp'].apply(lambda x: getListOfVaribles(x,'noise',5))
+df = df.drop(columns=['sp'])
+df['wfc-wf'] = df['wfc']-df['wf']
+
+# different experiment types
+print('-> Keys before cleanup:', df['prefix'].unique())
+# remove unused data
+df = df[df['prefix'].str.contains("SSA2D|SSA1D")]
+print('-> Keys after cleanup:', df['prefix'].unique())
+
+
+# noise level, only use no noise cases
+print('-> Keys before cleanup: ', df['noise'].drop_duplicates())
+df = df[df['noise'].isin([[]])]
+print('-> Keys after cleanup:', df['noise'].drop_duplicates())
+
+dimensions = 1
+if dimensions == 2:
+    lossWeightDict = {'mse_u':0, 'mse_v':0, 'mse_H': 1, 'mse_s':1, 'mse_f1': 3, 'mse_f2': 3, 'test':-1}
+    prefix = 'SSA2D'
+else:
+    lossWeightDict = {'mse_u':0, 'mse_H': 1, 'mse_h':1, 'mse_f1': 3, 'test':-1}
+    prefix = 'SSA1D'
+
+    path = os.path.join("./matlab_SSA/DATA/Helheim_Weertman_iT080_PINN_flowline_CF_2dInv.mat")
+    x, Exact_vel, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu = prep_Helheim_data_flowline(path, 50, 100)
+    C_true = u_star[:,3:4]
+    Cnorm = np.linalg.norm(C_true, 2)
+    NC = len(C_true)
+
+errorDict = getDataDict(5, wf=[4,6,8,10,12,14,16])
