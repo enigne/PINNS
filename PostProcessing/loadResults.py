@@ -55,7 +55,7 @@ def upscale_by_weights(dataDict, keys, weights): #{{{
         dataDict[k] = (dataDict[k]/w) if k in dataDict else dataDict[k]
     return dataDict
     #}}}
-def getDataDict(wh, lossWeightDict=lossWeightDict, df=df, dwfc=10, wf=[], prefix=prefix, NN='3NN', neurons=20, layers=8, projPath="./Models_Kubeflow/Models/"): #{{{
+def getDataDict(df, wh=5, lossWeightDict={}, dwfc=10, wf=[], prefix='SSA1D', NN='3NN', neurons=20, layers=8, projPath="./Models_Kubeflow/Models/", C_true=None): #{{{
     # weights
     wu = 5
     wC = 5
@@ -71,6 +71,14 @@ def getDataDict(wh, lossWeightDict=lossWeightDict, df=df, dwfc=10, wf=[], prefix
     # get the (key,weights) pair
     keys = [k for k in lossWeightDict.keys()]
     wids = [lossWeightDict[k] for k in keys]
+
+    # compute normalization for C
+    if C_true is None:
+        Cnorm = 1
+        NC = 1
+    else:
+        Cnorm = np.linalg.norm(C_true, 2)
+        NC = len(C_true)
 
     # loop through experiments
     for weights in weightsList:
@@ -175,7 +183,6 @@ else:
     path = os.path.join("./matlab_SSA/DATA/Helheim_Weertman_iT080_PINN_flowline_CF_2dInv.mat")
     x, Exact_vel, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu = prep_Helheim_data_flowline(path, 50, 100)
     C_true = u_star[:,3:4]
-    Cnorm = np.linalg.norm(C_true, 2)
-    NC = len(C_true)
 
-errorDict = getDataDict(5, wf=[4,6,8,10,12,14,16])
+errorDict = getDataDict(df, wh=5, wf=[4,6,8,10,12,14,16], lossWeightDict=lossWeightDict, C_true=C_true)
+
