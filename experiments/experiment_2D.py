@@ -213,7 +213,7 @@ def experiment_2D_frictionNN_hyperparameter_search(weights, epochADAM=400000, ep
     # path for loading data and saving models
     repoPath = "./"
     appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
-    path = os.path.join(appDataPath, dataFileName)
+    path = os.path.join(appDataPath, inputFileName)
     
     # create output folder
     loss_weights = [10**(-w) for w in weights]
