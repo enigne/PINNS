@@ -445,6 +445,14 @@ class SSA1D_3NN_calvingfront_invertC(SSA1D): #{{{
         '''
         return self.model.summary(),self.h_model.summary(), self.C_model.summary()
 
+    def save(self):
+        '''
+        save the model and history of training
+        '''
+        self.model.save(self.modelPath+"/u_model")
+        self.h_model.save(self.modelPath+"/h_model")
+        self.C_model.save(self.modelPath+"/C_model")
+        self.logger.save(self.modelPath+"/history.json")
     #}}}
 class SSA1D_3NN_solve_vel(SSA1D): #{{{
     '''
@@ -560,6 +568,14 @@ class SSA1D_3NN_solve_vel(SSA1D): #{{{
         '''
         return self.model.summary(),self.h_model.summary(), self.C_model.summary()
 
+    def save(self):
+        '''
+        save the model and history of training
+        '''
+        self.model.save(self.modelPath+"/u_model")
+        self.h_model.save(self.modelPath+"/h_model")
+        self.C_model.save(self.modelPath+"/C_model")
+        self.logger.save(self.modelPath+"/history.json")
     #}}}
 class SSA1D_frictionNN_saved(SSA1D): #{{{
     '''
@@ -907,6 +923,15 @@ class SSA1D_frictionNN(SSA1D): #{{{
         '''
         return self.model.summary(),self.h_model.summary(), self.C_model.summary(), self.friction_model.summary()
 
+    def save(self):
+        '''
+        save the model and history of training
+        '''
+        self.model.save(self.modelPath+"/u_model")
+        self.h_model.save(self.modelPath+"/h_model")
+        self.C_model.save(self.modelPath+"/C_model")
+        self.friction_model.save(self.modelPath+"/friction_model")
+        self.logger.save(self.modelPath+"/history.json")
     #}}}
 class SSA1D_frictionNN_uhH(SSA1D): #{{{
     '''
@@ -1069,5 +1094,13 @@ class SSA1D_frictionNN_uhH(SSA1D): #{{{
         '''
         return self.model.summary(),self.h_model.summary(), self.C_model.summary(), self.friction_model.summary()
 
+    def save(self):
+        '''
+        save the model and history of training
+        '''
+        self.model.save(self.modelPath+"/u_model")
+        self.h_model.save(self.modelPath+"/h_model")
+        self.C_model.save(self.modelPath+"/C_model")
+        self.friction_model.save(self.modelPath+"/friction_model")
+        self.logger.save(self.modelPath+"/history.json")
     #}}}
-

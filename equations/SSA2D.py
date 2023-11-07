@@ -359,6 +359,14 @@ class SSA2D_3NN_calvingfront_invertC(SSA2D): #{{{
         '''
         return self.model.summary(),self.h_model.summary(), self.C_model.summary()
 
+    def save(self):
+        '''
+        save the model and history of training
+        '''
+        self.model.save(self.modelPath+"/u_model")
+        self.h_model.save(self.modelPath+"/h_model")
+        self.C_model.save(self.modelPath+"/C_model")
+        self.logger.save(self.modelPath+"/history.json")
     #}}}
 class SSA2D_3NN_solve_vel(SSA2D): #{{{
     '''
@@ -492,6 +500,14 @@ class SSA2D_3NN_solve_vel(SSA2D): #{{{
         '''
         return self.model.summary(),self.h_model.summary(), self.C_model.summary()
 
+    def save(self):
+        '''
+        save the model and history of training
+        '''
+        self.model.save(self.modelPath+"/u_model")
+        self.h_model.save(self.modelPath+"/h_model")
+        self.C_model.save(self.modelPath+"/C_model")
+        self.logger.save(self.modelPath+"/history.json")
     #}}}
 class SSA2D_frictionNN(SSA2D): #{{{
     '''
@@ -696,6 +712,15 @@ class SSA2D_frictionNN(SSA2D): #{{{
         '''
         return self.model.summary(),self.h_model.summary(), self.C_model.summary(), self.friction_model.summary()
 
+    def save(self):
+        '''
+        save the model and history of training
+        '''
+        self.model.save(self.modelPath+"/u_model")
+        self.h_model.save(self.modelPath+"/h_model")
+        self.C_model.save(self.modelPath+"/C_model")
+        self.friction_model.save(self.modelPath+"/friction_model")
+        self.logger.save(self.modelPath+"/history.json")
     #}}}
 class SSA2D_transient(NeuralNetwork): #{{{
     '''
@@ -961,6 +986,15 @@ class SSA2D_transient(NeuralNetwork): #{{{
         output all model summaries
         '''
         return self.model.summary(),self.h_model.summary(), self.C_model.summary(), self.smb_model.summary()
+    def save(self):
+        '''
+        save the model and history of training
+        '''
+        self.model.save(self.modelPath+"/u_model")
+        self.h_model.save(self.modelPath+"/h_model")
+        self.C_model.save(self.modelPath+"/C_model")
+        self.smb_model.save(self.modelPath+"/smb_model")
+        self.logger.save(self.modelPath+"/history.json")
     #}}}
 class SSA2D_frictionNN_uvsH(SSA2D): #{{{
     '''
@@ -1159,5 +1193,13 @@ class SSA2D_frictionNN_uvsH(SSA2D): #{{{
         output all model summaries
         '''
         return self.model.summary(),self.h_model.summary(), self.C_model.summary(), self.friction_model.summary()
-
+    def save(self):
+        '''
+        save the model and history of training
+        '''
+        self.model.save(self.modelPath+"/u_model")
+        self.h_model.save(self.modelPath+"/h_model")
+        self.C_model.save(self.modelPath+"/C_model")
+        self.friction_model.save(self.modelPath+"/friction_model")
+        self.logger.save(self.modelPath+"/history.json")
     #}}}
