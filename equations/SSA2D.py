@@ -1009,18 +1009,24 @@ class SSA2D_frictionNN_uvsH(SSA2D): #{{{
         super().__init__(hp, logger, X_f, 
                 X_bc, u_bc, X_cf, n_cf,
                 xub, xlb, uub[0:2], ulb[0:2],
-                modelPath, reloadModel,
+                modelPath+"/u_model/", reloadModel,
                 mu, loss_weights=loss_weights)
-        # hp["h_layers"] defines h and H model
-        self.h_model = create_NN(hp["h_layers"], inputRange=(xlb, xub), outputRange=(ulb[2:4], uub[2:4]))
+        if reloadModel and os.path.exists(self.modelPath):
+            #load
+            self.h_model = tf.keras.models.load_model(modelPath+"/h_model/")
+            self.C_model = tf.keras.models.load_model(modelPath+"/C_model/")
+            self.friction_model = tf.keras.models.load_model(modelPath+"/friction_model/")
+        else:
+            # hp["h_layers"] defines h and H model
+            self.h_model = create_NN(hp["h_layers"], inputRange=(xlb, xub), outputRange=(ulb[2:4], uub[2:4]))
 
-        # hp["C_layers"] defines C model
-        self.C_model = create_NN(hp["C_layers"], inputRange=(xlb, xub), outputRange=(ulb[4:5], uub[4:5]))
+            # hp["C_layers"] defines C model
+            self.C_model = create_NN(hp["C_layers"], inputRange=(xlb, xub), outputRange=(ulb[4:5], uub[4:5]))
 
-        # hp["friction_layers"] defines friction model
-        fri_lb = (ulb[4:5]**2)*((ulb[0:1]**2.0+ulb[1:2]**2.0)**(0.5/n))
-        fri_ub = (uub[4:5]**2)*((uub[0:1]**2.0+uub[1:2]**2.0)**(0.5/n))
-        self.friction_model = create_NN(hp["friction_layers"], inputRange=(ulb[0:4], uub[0:4]), outputRange=(fri_lb, fri_ub))
+            # hp["friction_layers"] defines friction model
+            fri_lb = (ulb[4:5]**2)*((ulb[0:1]**2.0+ulb[1:2]**2.0)**(0.5/n))
+            fri_ub = (uub[4:5]**2)*((uub[0:1]**2.0+uub[1:2]**2.0)**(0.5/n))
+            self.friction_model = create_NN(hp["friction_layers"], inputRange=(ulb[0:4], uub[0:4]), outputRange=(fri_lb, fri_ub))
 
         self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.friction_model.layers[1:-1])
         self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.friction_model.trainable_variables
@@ -1181,12 +1187,15 @@ class SSA2D_frictionNN_uvsH(SSA2D): #{{{
         u_pred = uv_pred[:, 0:1]
         v_pred = uv_pred[:, 1:2]
 
-        hH_pred = self.h_model(X_star)
-        h_pred = hH_pred[:, 0:1]
-        H_pred = hH_pred[:, 1:2]
+        sH_pred = self.h_model(X_star)
+        s_pred = sH_pred[:, 0:1]
+        H_pred = sH_pred[:, 1:2]
         C_pred = self.C_model(X_star)
 
-        return u_pred.numpy(), v_pred.numpy(), h_pred.numpy(), H_pred.numpy(), C_pred.numpy()
+        
+        uvsH_pred = tf.concat([u_pred, v_pred, s_pred, H_pred], axis=1)
+        taub_pred = self.friction_model(uvsH_pred)
+        return u_pred.numpy(), v_pred.numpy(), s_pred.numpy(), H_pred.numpy(), C_pred.numpy(), taub_pred.numpy()
 
     def summary(self):
         '''
