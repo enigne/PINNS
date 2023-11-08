@@ -247,10 +247,12 @@ def experiment_2D_frictionNN_hyperparameter_search(weights, epochADAM=400000, ep
     # save {{{
     pinn.save()
     # plot
-    plot_2D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, 
+    plot_2D_frictionNN(pinn, X_f, X_star, u_star, xlb, xub, 
                           vranges={'u - u obs': [-1e3,1e3], 'v - v obs': [-1e3,1e3], 
                                    'h - h obs': [-1e2,1e2], 'H - H obs': [-1e2,1e2], 
-                                   'C - C obs': [-1e3,1e3]}, savePath=modelPath)
+                                   'C - C obs': [-1e3,1e3], 'taub pred': [0, 1e6], 
+                                   'taub from ISSM C': [0,1e6], 'taub - taub obs': [-1e6,1e6]},
+                                    savePath=modelPath)
     # history
     plot_log_history(pinn, modelPath)
     #}}}

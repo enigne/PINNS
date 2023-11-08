@@ -795,3 +795,63 @@ def plot_1D_transient_solutions(pinn, X_f, X_star, u_star, X_1d, C_1d, xlb, xub,
     else:
         plt.show()
     #}}}
+def plot_2D_frictionNN(pinn, X_f, X_star, u_star, xlb, xub, vranges={}, savePath=None): #{{{
+    yts = 3600*24*365
+    X, Y = np.meshgrid(np.linspace(xlb[0],xub[0],200), np.linspace(xlb[1],xub[1], 200))
+    # obs
+    ux = yts*griddata(X_star, u_star[:,0].flatten(), (X, Y), method='cubic')
+    uy = yts*griddata(X_star, u_star[:,1].flatten(), (X, Y), method='cubic')
+    h_obs = griddata(X_star, u_star[:,2].flatten(), (X, Y), method='cubic')
+    H_obs = griddata(X_star, u_star[:,3].flatten(), (X, Y), method='cubic')
+    C_obs = griddata(X_star, u_star[:,4].flatten(), (X, Y), method='cubic')
+    taub_comp = u_star[:,4:5]**2*((u_star[:,0:1]**2.0+u_star[:,1:2]**2.0)**(1.0/6.0))
+    taub_model = griddata(X_star, taub_comp[:,0], (X, Y), method='cubic')
+
+    # predicted solution
+    u_pred, v_pred, h, H, C_pred, taub = pinn.predict(X_star)
+    u_nn = yts*griddata(X_star, u_pred[:,0].flatten(), (X, Y), method='cubic')
+    v_nn = yts*griddata(X_star, v_pred[:,0].flatten(), (X, Y), method='cubic')
+    C_nn = griddata(X_star, C_pred[:,0], (X, Y), method='cubic')
+    h_nn = griddata(X_star, h[:,0], (X, Y), method='cubic')
+    H_nn = griddata(X_star, H[:,0], (X, Y), method='cubic')
+    taub_nn = griddata(X_star, taub[:,0], (X, Y), method='cubic')
+
+    # residual
+    f1, f2 = pinn.f_model()
+    F1 = griddata(X_f, f1[:,0], (X, Y), method='cubic')
+    F2 = griddata(X_f, f2[:,0], (X, Y), method='cubic')
+
+    ###########################
+    plotData = {}
+    plotData['u obs'] = ux
+    plotData['v obs'] = uy
+    plotData['taub from ISSM C'] = taub_model
+    plotData['h - h obs'] = h_nn - h_obs
+    ###########################
+    plotData['u pred'] = u_nn
+    plotData['v pred'] = v_nn
+    plotData['taub pred'] = taub_nn
+    plotData['H - H obs'] = H_nn - H_obs
+    ###########################
+    plotData['u - u obs'] = u_nn - ux
+    plotData['v - v obs'] = v_nn - uy
+    plotData['taub - taub obs'] = taub_nn - taub_model
+    plotData['f1 residual'] = F1
+    plotData['f2 residual'] = F2
+
+    fig, axs = plt.subplots(4, 4, figsize=(16,16))
+
+    for ax,name in zip(axs.ravel(), plotData.keys()):
+        vr = vranges.setdefault(name, [None, None])
+        im = ax.imshow(plotData[name], interpolation='nearest', cmap='rainbow',
+                extent=[X.min(), X.max(), Y.min(), Y.max()],
+                vmin=vr[0], vmax=vr[1],
+                origin='lower', aspect='auto')
+        ax.set_title(name)
+        fig.colorbar(im, ax=ax, shrink=1)
+
+    if savePath:
+        plt.savefig(savePath+"/2Dsolution.png")
+    else:
+        plt.show()
+    #}}}
