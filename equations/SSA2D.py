@@ -1464,7 +1464,7 @@ class SSA2D_frictionNN_uvsH_positiveTau_velmag(SSA2D): #{{{
             # hp["friction_layers"] defines friction model
             maxvel = (max(ulb[0]**2,uub[0]**2)+max(ulb[1]**2,uub[1]**2))**0.5;
             fri_ub = ((uub[4:5]**2)*(maxvel**(1.0/n)) )**0.5
-            self.friction_model = create_NN(hp["friction_layers"], inputRange=(ulb[0:4], uub[0:4]), outputRange=(-fri_ub, fri_ub))
+            self.friction_model = create_NN(hp["friction_layers"], inputRange=(np.concatenate([[0.0],ulb[2:4]]), np.concatenate([[maxvel], uub[2:4]])), outputRange=(-fri_ub, fri_ub))
 
         self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.friction_model.layers[1:-1])
         self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.friction_model.trainable_variables
