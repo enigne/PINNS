@@ -716,7 +716,7 @@ class SSA2D_frictionNN(SSA2D): #{{{
         '''
         save the model and history of training
         '''
-        self.model.save(self.modelPath+"/u_model")
+        self.model.save(self.modelPath+"/model")
         self.h_model.save(self.modelPath+"/h_model")
         self.C_model.save(self.modelPath+"/C_model")
         self.friction_model.save(self.modelPath+"/friction_model")
@@ -1009,8 +1009,10 @@ class SSA2D_frictionNN_uvsH(SSA2D): #{{{
         super().__init__(hp, logger, X_f, 
                 X_bc, u_bc, X_cf, n_cf,
                 xub, xlb, uub[0:2], ulb[0:2],
-                modelPath+"/u_model/", reloadModel,
+                modelPath+"/model/", reloadModel,
                 mu, loss_weights=loss_weights)
+        # overwrite self.modelPath, which has been changed in super()
+        self.modelPath = modelPath
         if reloadModel and os.path.exists(self.modelPath):
             #load
             self.h_model = tf.keras.models.load_model(modelPath+"/h_model/")
@@ -1206,7 +1208,7 @@ class SSA2D_frictionNN_uvsH(SSA2D): #{{{
         '''
         save the model and history of training
         '''
-        self.model.save(self.modelPath+"/u_model")
+        self.model.save(self.modelPath+"/model")
         self.h_model.save(self.modelPath+"/h_model")
         self.C_model.save(self.modelPath+"/C_model")
         self.friction_model.save(self.modelPath+"/friction_model")
@@ -1225,8 +1227,10 @@ class SSA2D_frictionNN_uvsH_positiveTau(SSA2D): #{{{
         super().__init__(hp, logger, X_f, 
                 X_bc, u_bc, X_cf, n_cf,
                 xub, xlb, uub[0:2], ulb[0:2],
-                modelPath+"/u_model/", reloadModel,
+                modelPath+"/model/", reloadModel,
                 mu, loss_weights=loss_weights)
+        # overwrite self.modelPath, which has been changed in super()
+        self.modelPath = modelPath
         if reloadModel and os.path.exists(self.modelPath):
             #load
             self.h_model = tf.keras.models.load_model(modelPath+"/h_model/")
@@ -1422,7 +1426,7 @@ class SSA2D_frictionNN_uvsH_positiveTau(SSA2D): #{{{
         '''
         save the model and history of training
         '''
-        self.model.save(self.modelPath+"/u_model")
+        self.model.save(self.modelPath+"/model")
         self.h_model.save(self.modelPath+"/h_model")
         self.C_model.save(self.modelPath+"/C_model")
         self.friction_model.save(self.modelPath+"/friction_model")
