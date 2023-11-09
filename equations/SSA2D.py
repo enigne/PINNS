@@ -1650,3 +1650,153 @@ class SSA2D_frictionNN_uvsH_positiveTau_velmag(SSA2D): #{{{
         self.friction_model.save(self.modelPath+"/friction_model")
         self.logger.save(self.modelPath+"/history.json")
     #}}}
+class SSA2D_3NN_invertHandC(SSA2D): #{{{
+    '''
+    class of learning C and H from observed u, v, and s, and PDEs
+    '''
+    def __init__(self, hp, logger, X_f, 
+            X_bc, u_bc, X_cf, n_cf, 
+            xub, xlb, uub, ulb, 
+            modelPath, reloadModel,
+            mu, n=3.0, 
+            loss_weights=[1e-5, 1e-3, 1e-5, 1e-8, 1e-12]):
+        super().__init__(hp, logger, X_f, 
+                X_bc, u_bc, X_cf, n_cf,
+                xub, xlb, uub[0:2], ulb[0:2],
+                modelPath+"/model/", reloadModel,
+                mu, loss_weights=loss_weights)
+        # overwrite self.modelPath, which has been changed in super()
+        self.modelPath = modelPath
+        if reloadModel and os.path.exists(self.modelPath):
+            #load
+            self.h_model = tf.keras.models.load_model(modelPath+"/h_model/")
+            self.C_model = tf.keras.models.load_model(modelPath+"/C_model/")
+        else:
+            # hp["h_layers"] defines h and H model
+            self.h_model = create_NN(hp["h_layers"], inputRange=(xlb, xub), outputRange=(ulb[2:4], uub[2:4]))
+
+            # hp["C_layers"] defines C model
+            self.C_model = create_NN(hp["C_layers"], inputRange=(xlb, xub), outputRange=(ulb[4:5], uub[4:5]))
+
+        self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.C_model.layers[1:-1])
+        self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.C_model.trainable_variables
+
+    # need to overwrite nn_model, which is used in computing the loss function
+    @tf.function
+    def nn_model(self, X):
+        '''
+        get the velocity and derivative prediction from the NN
+        '''
+        x = X[:, 0:1]
+        y = X[:, 1:2]
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(x)
+            tape.watch(y)
+            Xtemp = tf.concat([x, y], axis=1)
+
+            uv_sol = self.model(Xtemp)
+            u = uv_sol[:, 0:1]
+            v = uv_sol[:, 1:2]
+
+            sH_sol = self.h_model(Xtemp)
+            s = sH_sol[:, 0:1]
+            H = sH_sol[:, 1:2]
+
+            C = self.C_model(Xtemp)
+
+        u_x = tape.gradient(u, x)
+        v_x = tape.gradient(v, x)
+        u_y = tape.gradient(u, y)
+        v_y = tape.gradient(v, y)
+        del tape
+
+        return u, v, u_x, v_x, u_y, v_y, s, H, C
+
+    @tf.function
+    def loss(self, uv, X_u):
+        '''
+        loss = |u-uobs|+|v-vobs|+|h-hobs|+|H-Hobs|+|f1|+|f2|
+        '''
+        # Dirichlet B.C. for H and C
+        H0 = self.u_bc[:, 3:4]
+        sH_bc = self.h_model(self.X_bc)
+        H0_pred = sH_bc[:,1:2]
+
+        C0 = self.u_bc[:, 4:5]
+        C0_pred = self.C_model(self.X_bc)
+
+        # match h, H, and C to the training data
+        u0 = uv[:,0:1]
+        v0 = uv[:,1:2]
+        s0 = uv[:,2:3]
+
+        uv_pred = self.model(X_u)
+        u0_pred = uv_pred[:,0:1]
+        v0_pred = uv_pred[:,1:2]
+
+        sH_pred = self.h_model(X_u)
+        s0_pred = sH_pred[:,0:1]
+
+        # f_model on the collocation points 
+        f1_pred, f2_pred = self.f_model()
+        # calving front
+        fc1_pred, fc2_pred = self.cf_model(self.X_cf, self.n_cf)
+
+        # velocity misfit
+        mse_u = self.loss_weights[0]*(self.yts**2) * tf.reduce_mean(tf.square(u0 - u0_pred))
+        mse_v = self.loss_weights[0]*(self.yts**2) * tf.reduce_mean(tf.square(v0 - v0_pred))
+        # geometry misfit
+        mse_s = self.loss_weights[1]*tf.reduce_mean(tf.square(s0 - s0_pred))
+        mse_H = self.loss_weights[1]*tf.reduce_mean(tf.square(H0 - H0_pred))
+        # friction misfit
+        mse_C = self.loss_weights[2]*tf.reduce_mean(tf.square(C0 - C0_pred))
+        # residual of PDE
+        mse_f1 = self.loss_weights[3]*tf.reduce_mean(tf.square(f1_pred))
+        mse_f2 = self.loss_weights[3]*tf.reduce_mean(tf.square(f2_pred))
+        # calving front boundary
+        mse_fc1 = self.loss_weights[4]*tf.reduce_mean(tf.square(fc1_pred))
+        mse_fc2 = self.loss_weights[4]*tf.reduce_mean(tf.square(fc2_pred))
+
+        # sum the total
+        totalloss = mse_u + mse_v + mse_s + mse_H + mse_C + mse_f1 + mse_f2 + mse_fc1 + mse_fc2
+        return {"loss": totalloss, "mse_u": mse_u, "mse_v": mse_v, "mse_s": mse_s,
+                "mse_H": mse_H, "mse_C": mse_C, "mse_f1": mse_f1, "mse_f2": mse_f2,
+                "mse_fc1": mse_fc1, "mse_fc2": mse_fc2}
+
+    @tf.function
+    def test_error(self, X_star, u_star):
+        '''
+        test error of taub
+        '''
+        sol_pred = self.C_model(X_star)
+        return  tf.math.reduce_euclidean_norm(tf.math.abs(sol_pred) - tf.math.abs(u_star[:,4:5])) / tf.math.reduce_euclidean_norm(u_star[:,4:5])
+
+    def predict(self, X_star):
+        '''
+        return numpy array of the model
+        '''
+        uv_pred = self.model(X_star)
+        u_pred = uv_pred[:, 0:1]
+        v_pred = uv_pred[:, 1:2]
+
+        sH_pred = self.h_model(X_star)
+        s_pred = sH_pred[:, 0:1]
+        H_pred = sH_pred[:, 1:2]
+        C_pred = self.C_model(X_star)
+
+        return u_pred.numpy(), v_pred.numpy(), s_pred.numpy(), H_pred.numpy(), C_pred.numpy()
+
+    def summary(self):
+        '''
+        output all model summaries
+        '''
+        return self.model.summary(),self.h_model.summary(), self.C_model.summary()
+    def save(self):
+        '''
+        save the model and history of training
+        '''
+        self.model.save(self.modelPath+"/model")
+        self.h_model.save(self.modelPath+"/h_model")
+        self.C_model.save(self.modelPath+"/C_model")
+        self.logger.save(self.modelPath+"/history.json")
+    #}}}
