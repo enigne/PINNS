@@ -363,7 +363,7 @@ class SSA2D_3NN_calvingfront_invertC(SSA2D): #{{{
         '''
         save the model and history of training
         '''
-        self.model.save(self.modelPath+"/u_model")
+        self.model.save(self.modelPath+"/model")
         self.h_model.save(self.modelPath+"/h_model")
         self.C_model.save(self.modelPath+"/C_model")
         self.logger.save(self.modelPath+"/history.json")
@@ -504,7 +504,7 @@ class SSA2D_3NN_solve_vel(SSA2D): #{{{
         '''
         save the model and history of training
         '''
-        self.model.save(self.modelPath+"/u_model")
+        self.model.save(self.modelPath+"/model")
         self.h_model.save(self.modelPath+"/h_model")
         self.C_model.save(self.modelPath+"/C_model")
         self.logger.save(self.modelPath+"/history.json")
@@ -990,7 +990,7 @@ class SSA2D_transient(NeuralNetwork): #{{{
         '''
         save the model and history of training
         '''
-        self.model.save(self.modelPath+"/u_model")
+        self.model.save(self.modelPath+"/model")
         self.h_model.save(self.modelPath+"/h_model")
         self.C_model.save(self.modelPath+"/C_model")
         self.smb_model.save(self.modelPath+"/smb_model")
