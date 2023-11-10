@@ -491,7 +491,7 @@ def experiment_2D_3NN_HandC(weights, epochADAM=400000, epochLBFGS=0, N_u=2000, N
     plot_log_history(pinn, modelPath)
     #}}}
 #}}}
-def experiment_2D_3NN_test(weights, epochADAM=400000, epochLBFGS=0, N_u=2000, N_H=2000, N_f=4000, seed=1234, log_frequency=10000, history_frequency=10, NLayers=6, NNeurons=20,  #{{{
+def experiment_2D_3NN_test(weights, epochADAM=400000, epochLBFGS=0, N_u=2000, N_H=2000, N_C=None, N_f=4000, seed=1234, log_frequency=10000, history_frequency=10, NLayers=6, NNeurons=20,  #{{{
                                                     inputFileName="Helheim_Weertman_iT080_PINN_fastflow_CF", outputFileName="SSA2D_3NN_test"):
     # Manually making sure the numpy random seeds are "the same" on all devices {{{
     if seed:
@@ -503,7 +503,7 @@ def experiment_2D_3NN_test(weights, epochADAM=400000, epochLBFGS=0, N_u=2000, N_
     hp["N_u"] = N_u
     hp["N_s"] = N_u
     hp["N_H"] = N_H
-    hp["N_C"] = None
+    hp["N_C"] = N_C
     # Collocation points size, where we’ll check for f = 0
     hp["N_f"] = N_f
     # DeepNN topology (2-sized input [x,y], NLayers hidden layer of NNeurons-width, 1-sized output [u,v]
