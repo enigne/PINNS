@@ -476,7 +476,7 @@ def prep_Helheim_transient(path, N_u=None, N_f=None): #{{{
     # X_bc, u_bc : boundary nodes
     # X_cf, n_cf : cavling front positions and normal vector
     return X_star, u_star, X_train, u_train, X_1d, C_1d, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu  #}}}
-def prep_2D_data_all(path, N_u=None, N_f=None): #{{{
+def prep_2D_data_all(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None): #{{{
     # Reading SSA ref solutions: x, y-coordinates, provide ALL the variables in u_train
     data = scipy.io.loadmat(path,  mat_dtype=True)
 
@@ -533,22 +533,46 @@ def prep_2D_data_all(path, N_u=None, N_f=None): #{{{
     X_ = np.vstack([X_star[iice[:,0],:]])
     u_ = np.vstack([u_star[iice[:,0],:]])
 
-    # Generating a uniform random sample from ints between 0, and the size of x_u_train, of size N_u (initial data size) and without replacement (unique)
-    idx = np.random.choice(X_.shape[0], N_u, replace=False)
     # Getting the corresponding X_train and u_train(which is now scarce boundary/initial coordinates)
     X_train = {}
     u_train = {}
-    X_train["uv"] = X_[idx,:]
-    u_train["uv"] = u_[idx, 0:2]
 
+    # Generating a uniform random sample from ints between 0, and the size of x_u_train, of size N_u (initial data size) and without replacement (unique)
+    # velocity data
+    if N_u:
+        idx = np.random.choice(X_.shape[0], N_u, replace=False)
+        X_train["uv"] = X_[idx,:]
+        u_train["uv"] = u_[idx, 0:2]
+    else:
+        X_train["uv"] = X_bc
+        u_train["uv"] = u_bc[:, 0:2]
+
+    # surface elevation, always available, use the maximum points among all the other data set
+    if N_s is None:
+        Nlist = [N_u, N_H, N_C]
+        N_s = max([i for i in Nlist if i is not None])
+
+    idx = np.random.choice(X_.shape[0], N_s, replace=False)
     X_train["s"] = X_[idx,:]
     u_train["s"] = u_[idx, 2:3]
 
-    X_train["H"] = X_[idx,:]
-    u_train["H"] = u_[idx, 3:4]
+    # ice thickness, or bed elevation
+    if N_H:
+        idx = np.random.choice(X_.shape[0], N_H, replace=False)
+        X_train["H"] = X_[idx,:]
+        u_train["H"] = u_[idx, 3:4]
+    else:
+        X_train["H"] = X_bc
+        u_train["H"] = u_bc[:, 3:4]
 
-    X_train["C"] = X_[idx,:]
-    u_train["C"] = u_[idx, 4:5]
+    # friction coefficients
+    if N_C:
+        idx = np.random.choice(X_.shape[0], N_C, replace=False)
+        X_train["C"] = X_[idx,:]
+        u_train["C"] = u_[idx, 4:5]
+    else:
+        X_train["C"] = X_bc
+        u_train["C"] = u_bc[:, 4:5]
 
     # calving front info
     cx = data['cx'].flatten()[:,None]
