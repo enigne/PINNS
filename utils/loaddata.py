@@ -477,7 +477,7 @@ def prep_Helheim_transient(path, N_u=None, N_f=None): #{{{
     # X_cf, n_cf : cavling front positions and normal vector
     return X_star, u_star, X_train, u_train, X_1d, C_1d, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu  #}}}
 def prep_2D_data_all(path, N_u=None, N_f=None): #{{{
-    # Reading SSA ref solutions: x, y-coordinates, usol and Hsol
+    # Reading SSA ref solutions: x, y-coordinates, provide ALL the variables in u_train
     data = scipy.io.loadmat(path,  mat_dtype=True)
 
     # viscosity
@@ -540,11 +540,15 @@ def prep_2D_data_all(path, N_u=None, N_f=None): #{{{
     u_train = {}
     X_train["uv"] = X_[idx,:]
     u_train["uv"] = u_[idx, 0:2]
-    X_train["sH"] = X_[idx,:]
-    u_train["sH"] = u_[idx, 2:4]
-    # boundary conditions for C
-    X_train["C"] = X_bc
-    u_train["C"] = u_bc[:, 4:5]
+
+    X_train["s"] = X_[idx,:]
+    u_train["s"] = u_[idx, 2:3]
+
+    X_train["H"] = X_[idx,:]
+    u_train["H"] = u_[idx, 3:4]
+
+    X_train["C"] = X_[idx,:]
+    u_train["C"] = u_[idx, 4:5]
 
     # calving front info
     cx = data['cx'].flatten()[:,None]

@@ -207,13 +207,16 @@ class SSA_3NN(NeuralNetwork): #{{{
         u0_pred = uv_pred[:, 0:1]
         v0_pred = uv_pred[:, 1:2]
 
-        sH0 = u_train["sH"]
-        s0 = sH0[:,0:1]
-        H0 = sH0[:,1:2]
-        X_sH = X_train["sH"]
-        sH_pred = self.h_model(X_sH)
-        s0_pred = sH_pred[:, 0:1]
-        H0_pred = sH_pred[:, 1:2]
+        # s and H can be from different data sources
+        s0 = u_train["s"]
+        X_s = X_train["s"]
+        s_pred = self.h_model(X_s)
+        s0_pred = s_pred[:, 0:1]
+
+        H0 = u_train["H"]
+        X_H = X_train["H"]
+        H_pred = self.h_model(X_H)
+        H0_pred = H_pred[:, 1:2]
 
         C0 = u_train["C"]
         X_C = X_train["C"]
