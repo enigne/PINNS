@@ -449,7 +449,7 @@ class SSA1D_3NN_calvingfront_invertC(SSA1D): #{{{
         '''
         save the model and history of training
         '''
-        self.model.save(self.modelPath+"/u_model")
+        self.model.save(self.modelPath+"/model")
         self.h_model.save(self.modelPath+"/h_model")
         self.C_model.save(self.modelPath+"/C_model")
         self.logger.save(self.modelPath+"/history.json")
@@ -572,7 +572,7 @@ class SSA1D_3NN_solve_vel(SSA1D): #{{{
         '''
         save the model and history of training
         '''
-        self.model.save(self.modelPath+"/u_model")
+        self.model.save(self.modelPath+"/model")
         self.h_model.save(self.modelPath+"/h_model")
         self.C_model.save(self.modelPath+"/C_model")
         self.logger.save(self.modelPath+"/history.json")
@@ -927,7 +927,7 @@ class SSA1D_frictionNN(SSA1D): #{{{
         '''
         save the model and history of training
         '''
-        self.model.save(self.modelPath+"/u_model")
+        self.model.save(self.modelPath+"/model")
         self.h_model.save(self.modelPath+"/h_model")
         self.C_model.save(self.modelPath+"/C_model")
         self.friction_model.save(self.modelPath+"/friction_model")
@@ -1098,7 +1098,7 @@ class SSA1D_frictionNN_uhH(SSA1D): #{{{
         '''
         save the model and history of training
         '''
-        self.model.save(self.modelPath+"/u_model")
+        self.model.save(self.modelPath+"/model")
         self.h_model.save(self.modelPath+"/h_model")
         self.C_model.save(self.modelPath+"/C_model")
         self.friction_model.save(self.modelPath+"/friction_model")

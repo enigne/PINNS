@@ -17,7 +17,7 @@ class SSA_3NN(NeuralNetwork): #{{{
             modelPath, reloadModel,
             mu, n=3.0, 
             loss_weights=[1e-5, 1e-3, 1e-5, 1e-10, 1e-16]):
-        super().__init__(hp, logger, xub, xlb, uub["uv"], ulb["uv"], modelPath+"/u_model/", reloadModel=reloadModel)
+        super().__init__(hp, logger, xub, xlb, uub["uv"], ulb["uv"], modelPath+"/model/", reloadModel=reloadModel)
 
         # weights of the loss functions
         self.loss_weights = tf.constant(loss_weights, dtype=self.dtype)
