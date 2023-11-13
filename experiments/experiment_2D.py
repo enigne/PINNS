@@ -554,6 +554,10 @@ def experiment_2D_3NN_test(weights, epochADAM=400000, epochLBFGS=0, N_u=2000, N_
     logger.set_error_fn(error)
     # }}}
     # train the model {{{
+    print("Training set: \n")
+    for k in u_train.keys():
+        print(f"{k}: {u_train[k].shape} \n")
+
     pinn.fit(X_u_train, u_train)
     # }}}
     # save {{{
