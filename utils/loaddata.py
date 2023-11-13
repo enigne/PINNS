@@ -562,14 +562,18 @@ def prep_2D_data_all(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None): #{
         X_train["H"] = X_[idx,:]
         u_train["H"] = u_[idx, 3:4]
     else:
-        # load thickness along flowlines
-        H_fl = np.real(data['H_fl'].flatten()[:,None])
-        x_fl = np.real(data['x_fl'].flatten()[:,None])
-        y_fl = np.real(data['y_fl'].flatten()[:,None])
-        X_fl = np.hstack((x_fl.flatten()[:,None], y_fl.flatten()[:,None]))
+        if 'x_fl' in data.keys():
+            # load thickness along flowlines
+            H_fl = np.real(data['H_fl'].flatten()[:,None])
+            x_fl = np.real(data['x_fl'].flatten()[:,None])
+            y_fl = np.real(data['y_fl'].flatten()[:,None])
+            X_fl = np.hstack((x_fl.flatten()[:,None], y_fl.flatten()[:,None]))
 
-        X_train["H"] = np.vstack([X_bc, X_fl])
-        u_train["H"] = np.vstack([u_bc[:, 3:4], H_fl])
+            X_train["H"] = np.vstack([X_bc, X_fl])
+            u_train["H"] = np.vstack([u_bc[:, 3:4], H_fl])
+        else:
+            X_train["H"] = X_bc
+            u_train["H"] = u_bc[:, 3:4]
 
     # friction coefficients
     if N_C:
