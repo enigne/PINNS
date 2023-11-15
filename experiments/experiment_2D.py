@@ -547,10 +547,18 @@ def experiment_2D_3NN_test(weights, epochADAM=400000, epochLBFGS=0, N_u=2000, N_
             loss_weights=loss_weights)
 
     # error function for logger
-    X_u = pinn.tensor(X_star)
-    u = pinn.tensor(u_star)
-    def error():
-        return pinn.test_error(X_u, u)
+    X_test = pinn.tensor(X_star)
+    if not N_C:
+        u_test = pinn.tensor(u_star[:,4:5])
+        def error():
+            return pinn.C_test_error(X_test, u_test)
+    elif not N_H:
+        u_test = pinn.tensor(u_star[:,3:4])
+        def error():
+            return pinn.H_test_error(X_test, u_test)
+    else:
+        print('Not implemented')
+
     logger.set_error_fn(error)
     # }}}
     # train the model {{{
