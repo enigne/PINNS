@@ -581,3 +581,95 @@ def experiment_2D_3NN_test(weights, epochADAM=400000, epochLBFGS=0, N_u=2000, N_
     plot_log_history(pinn, modelPath)
     #}}}
 #}}}
+def experiment_2D_4NN_test(weights, epochADAM=400000, epochLBFGS=0, N_u=2000, N_H=2000, N_C=None, N_f=4000, N_mu=None, seed=1234, log_frequency=10000, history_frequency=10, NLayers=6, NNeurons=20,  #{{{
+                                                    inputFileName="Helheim_Big_PINN_fastflow_Rignot_SMW_JoughinComposite", outputFileName="SSA2D_4NN_test"):
+    # Manually making sure the numpy random seeds are "the same" on all devices {{{
+    if seed:
+        np.random.seed(seed)
+        tf.random.set_seed(seed) #}}}
+    # Hyper parameters {{{
+    hp = {}
+    # Data size on the solution u
+    hp["N_u"] = N_u
+    hp["N_s"] = N_u
+    hp["N_H"] = N_H
+    hp["N_C"] = N_C
+    hp["N_mu"] = N_mu
+    # Collocation points size, where we’ll check for f = 0
+    hp["N_f"] = N_f
+    # DeepNN topology (2-sized input [x,y], NLayers hidden layer of NNeurons-width, 1-sized output [u,v]
+    hp["layers"] = [2]+[NNeurons]*NLayers+[2]
+    # DeepNN topology (1-sized input [x,y], NLayers hidden layer of NNeurons-width, 2-sized output [s, H]
+    hp["h_layers"] = [2]+[NNeurons]*NLayers+[2]
+    # DeepNN topology (1-sized input [x,y], NLayers hidden layer of NNeurons-width, 1-sized output [C]
+    hp["C_layers"] = [2]+[NNeurons]*NLayers+[1]
+    # DeepNN topology (1-sized input [x,y], NLayers hidden layer of NNeurons-width, 1-sized output [C]
+    hp["mu_layers"] = [2]+[NNeurons]*NLayers+[1]
+    # Setting up the TF SGD-based optimizer (set tf_epochs=0 to cancel it)
+    hp["tf_epochs"] = epochADAM
+    hp["tf_lr"] = 0.001
+    hp["tf_b1"] = 0.99
+    hp["tf_eps"] = 1e-1
+    # Setting up the quasi-newton LBGFS optimizer (set nt_epochs=0 to cancel it)
+    hp["nt_epochs"] = epochLBFGS
+    hp["log_frequency"] = log_frequency
+    # Record the history
+    hp["save_history"] = True
+    hp["history_frequency"] = history_frequency
+    # path for loading data and saving models
+    repoPath = "./"
+    appDataPath = os.path.join(repoPath, "matlab_SSA", "DATA")
+    path = os.path.join(appDataPath, inputFileName)
+    
+    # create output folder
+    loss_weights = [10**(-w) for w in weights]
+    now = datetime.now()
+    modelPath = "./Models/"+outputFileName+"_3NN_"+str(NLayers)+"x"+str(NNeurons)+"_weights"+ "".join([str(w)+"_" for w in weights]) + now.strftime("%Y%m%d_%H%M%S")
+    modelPath += ("_seed_" + str(seed) if seed else "")
+    reloadModel = False # reload from previous training
+    #}}}
+    # load the data {{{
+    x, y, Exact_vx, Exact_vy, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu = prep_2D_data_withmu(path, N_f=hp["N_f"], N_u=hp["N_u"], N_s=hp["N_s"], N_H=hp["N_H"], N_C=hp["N_C"], N_mu=hp["N_mu"]) #}}}
+    # Creating the model and training {{{
+    logger = Logger(hp)
+    pinn = SSA_4NN(hp, logger, X_f,
+            X_cf, n_cf,
+            xub, xlb, uub, ulb,
+            modelPath, reloadModel,
+            loss_weights=loss_weights)
+
+    # error function for logger
+    X_test = pinn.tensor(X_star)
+    if not N_C:
+        u_test = pinn.tensor(u_star[:,4:5])
+        def error():
+            return pinn.C_test_error(X_test, u_test)
+    elif not N_H:
+        u_test = pinn.tensor(u_star[:,3:4])
+        def error():
+            return pinn.H_test_error(X_test, u_test)
+    else:
+        print('Not implemented')
+
+    logger.set_error_fn(error)
+    # }}}
+    # train the model {{{
+    print("Training set: \n")
+    for k in u_train.keys():
+        print(f"{k}: {u_train[k].shape} \n")
+
+    pinn.fit(X_u_train, u_train)
+    # }}}
+    # save {{{
+    pinn.save()
+    # plot
+    plot_2D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, 
+                          vranges={'u - u obs': [-1e3,1e3], 'v - v obs': [-1e3,1e3], 
+                                   'h - h obs': [-1e2,1e2], 'H - H obs': [-1e2,1e2], 
+                                   'C - C obs': [-1e3,1e3], 'taub pred': [0, 1e6], 
+                                   'taub from ISSM C': [0,1e6], 'taub - taub obs': [-1e6,1e6]},
+                                    savePath=modelPath)
+    # history
+    plot_log_history(pinn, modelPath)
+    #}}}
+#}}}

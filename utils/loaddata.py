@@ -594,3 +594,130 @@ def prep_2D_data_all(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None): #{
     n_cf = np.hstack((nx.flatten()[:,None], ny.flatten()[:,None]))
 
     return x, y, Exact_vx, Exact_vy, X_star, u_star, X_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu  #}}}
+def prep_2D_data_withmu(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None, N_mu=None): #{{{
+    # Reading SSA ref solutions: x, y-coordinates, provide ALL the variables in u_train
+    data = scipy.io.loadmat(path,  mat_dtype=True)
+
+    # Flatten makes [[]] into [], [:,None] makes it a column vector
+    x = data['x'].flatten()[:,None]
+    y = data['y'].flatten()[:,None]
+
+    # collocation points
+    X_f = np.real(data['X_f'])
+    idf = np.random.choice(X_f.shape[0], N_f, replace=False)
+    X_f = X_f[idf,:]
+
+    # real() is to make it float by default, in case of zeroes
+    Exact_vx = np.real(data['vx'].flatten()[:,None])
+    Exact_vy = np.real(data['vy'].flatten()[:,None])
+    Exact_h = np.real(data['h'].flatten()[:,None])
+    Exact_H = np.real(data['H'].flatten()[:,None])
+    Exact_C = np.real(data['C'].flatten()[:,None])
+    Exact_mu = np.real(data['mu'].flatten()[:,None])
+
+    # boundary nodes
+    DBC = data['DBC'].flatten()[:,None]
+
+    # Preparing the inputs x and y for predictions in one single array, as X_star
+    X_star = np.hstack((x.flatten()[:,None], y.flatten()[:,None]))
+
+    # Preparing the testing u_star and vy_star
+    u_star = np.hstack((Exact_vx.flatten()[:,None], Exact_vy.flatten()[:,None], Exact_h.flatten()[:,None], Exact_H.flatten()[:,None], Exact_C.flatten()[:,None], Exact_mu.flatten()[:,None])) 
+
+    # Domain bounds: for regularization and generate training set
+    xlb = X_star.min(axis=0)
+    xub = X_star.max(axis=0) 
+    umin = u_star.min(axis=0)
+    umax = u_star.max(axis=0) 
+    ulb = {}
+    uub = {}
+    ulb["uv"] = umin[0:2]
+    uub["uv"] = umax[0:2]
+    ulb["sH"] = umin[2:4]
+    uub["sH"] = umax[2:4]
+    ulb["C"] = umin[4:5]
+    uub["C"] = umax[4:5]
+    ulb["mu"] = umin[5:6]
+    uub["mu"] = umax[5:6]
+
+    # set Dirichlet boundary conditions
+    idbc = np.transpose(np.asarray(DBC>0).nonzero())
+    X_bc = X_star[idbc[:,0],:]
+    u_bc = u_star[idbc[:,0],:]
+
+    # Stacking them in multidimensional tensors for training, only use ice covered area
+    icemask = data['icemask'].flatten()[:,None]
+    iice = np.transpose(np.asarray(icemask>0).nonzero())
+    X_ = np.vstack([X_star[iice[:,0],:]])
+    u_ = np.vstack([u_star[iice[:,0],:]])
+
+    # Getting the corresponding X_train and u_train(which is now scarce boundary/initial coordinates)
+    X_train = {}
+    u_train = {}
+
+    # Generating a uniform random sample from ints between 0, and the size of x_u_train, of size N_u (initial data size) and without replacement (unique)
+    # velocity data
+    if N_u:
+        idx = np.random.choice(X_.shape[0], N_u, replace=False)
+        X_train["uv"] = X_[idx,:]
+        u_train["uv"] = u_[idx, 0:2]
+    else:
+        X_train["uv"] = X_bc
+        u_train["uv"] = u_bc[:, 0:2]
+
+    # surface elevation, always available, use the maximum points among all the other data set
+    if N_s is None:
+        Nlist = [N_u, N_H, N_C]
+        N_s = max([i for i in Nlist if i is not None])
+
+    idx = np.random.choice(X_.shape[0], N_s, replace=False)
+    X_train["s"] = X_[idx,:]
+    u_train["s"] = u_[idx, 2:3]
+
+    # ice thickness, or bed elevation
+    if N_H:
+        idx = np.random.choice(X_.shape[0], N_H, replace=False)
+        X_train["H"] = X_[idx,:]
+        u_train["H"] = u_[idx, 3:4]
+    else:
+        if 'x_fl' in data.keys():
+            # load thickness along flowlines
+            H_fl = np.real(data['H_fl'].flatten()[:,None])
+            x_fl = np.real(data['x_fl'].flatten()[:,None])
+            y_fl = np.real(data['y_fl'].flatten()[:,None])
+            X_fl = np.hstack((x_fl.flatten()[:,None], y_fl.flatten()[:,None]))
+
+            X_train["H"] = np.vstack([X_bc, X_fl])
+            u_train["H"] = np.vstack([u_bc[:, 3:4], H_fl])
+        else:
+            X_train["H"] = X_bc
+            u_train["H"] = u_bc[:, 3:4]
+
+    # friction coefficients
+    if N_C:
+        idx = np.random.choice(X_.shape[0], N_C, replace=False)
+        X_train["C"] = X_[idx,:]
+        u_train["C"] = u_[idx, 4:5]
+    else:
+        X_train["C"] = X_bc
+        u_train["C"] = u_bc[:, 4:5]
+
+    # mu
+    if N_mu:
+        idx = np.random.choice(X_.shape[0], N_mu, replace=False)
+        X_train["mu"] = X_[idx,:]
+        u_train["mu"] = u_[idx, 5:6]
+    else:
+        X_train["mu"] = X_bc
+        u_train["mu"] = u_bc[:, 5:6]
+
+    # calving front info
+    cx = data['cx'].flatten()[:,None]
+    cy = data['cy'].flatten()[:,None]
+    nx = data['smoothnx'].flatten()[:,None]
+    ny = data['smoothny'].flatten()[:,None]
+
+    X_cf = np.hstack((cx.flatten()[:,None], cy.flatten()[:,None]))
+    n_cf = np.hstack((nx.flatten()[:,None], ny.flatten()[:,None]))
+
+    return x, y, Exact_vx, Exact_vy, X_star, u_star, X_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, None  #}}}
