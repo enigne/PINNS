@@ -663,7 +663,7 @@ def experiment_2D_4NN_test(weights, epochADAM=400000, epochLBFGS=0, N_u=2000, N_
     # save {{{
     pinn.save()
     # plot
-    plot_2D_solutions_all(pinn, X_f, X_star, u_star, xlb, xub, 
+    plot_2D_solutions_mu(pinn, X_f, X_star, u_star, xlb, xub, 
                           vranges={'u - u obs': [-1e3,1e3], 'v - v obs': [-1e3,1e3], 
                                    'h - h obs': [-1e2,1e2], 'H - H obs': [-1e2,1e2], 
                                    'C - C obs': [-1e3,1e3], 'taub pred': [0, 1e6], 
