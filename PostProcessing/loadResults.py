@@ -136,53 +136,74 @@ def getDataDict(df, wh=5, lossWeightDict={}, dwfc=10, wf=[], prefix='SSA1D', NN=
     ax.legend(bbox_to_anchor=(1.1, 1.5))
 
     return dataDict #}}}
+def findAllExps(projPath="./Models_Kubeflow/Models/", dimensions = 1): #{{{
+    # find all the experiments folders
+    foldersList = os.listdir(projPath)
+    df = pd.DataFrame(foldersList, columns=['Name'])
+    
+    # get info from the name
+    df['sp'] = df['Name'].apply(lambda x: x.split('_'))
+    # remove len(['sp'])>3
+    splen = df['sp'].apply(lambda x: len(x))
+    df = df[splen>3]
 
-# find all the experiments folders
-projPath="./Models_Kubeflow/Models/"
-foldersList = os.listdir(projPath)
-df = pd.DataFrame(foldersList, columns=['Name'])
+    # get all info from the folder name
+    df['prefix'] = df['Name'].apply(lambda x: x.split('NN')[0][:-2])
+    df['NN'] = df['sp'].apply(lambda x: getFromRegex(x, r"^[0-9]NN$"))
+    df['layers'] = df['sp'].apply(lambda x: getFromRegex(x, r"^[0-9]+(?=x[0-9]+$)"))
+    df['neurons'] = df['sp'].apply(lambda x: getFromRegex(x, r"(?<=[0-9]x|[00-99]x)[0-9]+"))
+    df['Date'] = df['sp'].apply(lambda x: x[-2])
+    df['Time'] = df['sp'].apply(lambda x: x[-1])
+    df['weights'] = df['sp'].apply(getListOfVaribles)
+    df['wu'] = df['weights'].apply(lambda x: x[0] if x else 0)
+    df['wh'] = df['weights'].apply(lambda x: x[1] if x else 0)
+    df['wC'] = df['weights'].apply(lambda x: x[2] if x else 0)
+    df['wf'] = df['weights'].apply(lambda x: x[3] if x else 0)
+    df['wfc'] = df['weights'].apply(lambda x: x[4] if x else 0)
+    df['noise'] = df['sp'].apply(lambda x: getListOfVaribles(x,'noise',5))
+    df = df.drop(columns=['sp'])
+    df['wfc-wf'] = df['wfc']-df['wf']
+    
+    # remove name with 'seed'
+    print('-> size before cleanup:', df.shape)
+    df = df[df['Date'].str.strip()!='seed']
+    print('-> size after cleanup:', df.shape)
 
-# get info from the name
-df['sp'] = df['Name'].apply(lambda x: x.split('_'))
-df['prefix'] = df['Name'].apply(lambda x: x.split('NN')[0][:-2])
-df['NN'] = df['sp'].apply(lambda x: getFromRegex(x, r"^[0-9]NN$"))
-df['layers'] = df['sp'].apply(lambda x: getFromRegex(x, r"^[0-9]+(?=x[0-9]+$)"))
-df['neurons'] = df['sp'].apply(lambda x: getFromRegex(x, r"(?<=[0-9]x|[00-99]x)[0-9]+"))
-df['Date'] = df['sp'].apply(lambda x: x[-2])
-df['Time'] = df['sp'].apply(lambda x: x[-1])
-df['weights'] = df['sp'].apply(getListOfVaribles)
-df['wu'] = df['weights'].apply(lambda x: x[0] if x else 0)
-df['wh'] = df['weights'].apply(lambda x: x[1] if x else 0)
-df['wC'] = df['weights'].apply(lambda x: x[2] if x else 0)
-df['wf'] = df['weights'].apply(lambda x: x[3] if x else 0)
-df['wfc'] = df['weights'].apply(lambda x: x[4] if x else 0)
-df['noise'] = df['sp'].apply(lambda x: getListOfVaribles(x,'noise',5))
-df = df.drop(columns=['sp'])
-df['wfc-wf'] = df['wfc']-df['wf']
+    # convert date
+    df['Date']=df['Date'].astype(int)
+    
+    # different experiment types
+    print('-> Keys before cleanup:', df['prefix'].unique())
+    # remove unused data
+    df = df[df['prefix'].str.contains("SSA2D|SSA1D")]
+    print('-> Keys after cleanup:', df['prefix'].unique())
 
-# different experiment types
-print('-> Keys before cleanup:', df['prefix'].unique())
-# remove unused data
-df = df[df['prefix'].str.contains("SSA2D|SSA1D")]
-print('-> Keys after cleanup:', df['prefix'].unique())
+    # noise level, only use no noise cases
+    print('-> Keys before cleanup: ', df['noise'].drop_duplicates())
+    df = df[df['noise'].isin([[]])]
+    print('-> Keys after cleanup:', df['noise'].drop_duplicates())
 
+    # 1D or 2D problem
+    if dimensions == 2:
+        lossWeightDict = {'mse_u':0, 'mse_v':0, 'mse_H': 1, 'mse_s':1, 'mse_f1': 3, 'mse_f2': 3, 'test':-1}
+        prefix = 'SSA2D'
+    else:
+        lossWeightDict = {'mse_u':0, 'mse_H': 1, 'mse_h':1, 'mse_f1': 3, 'test':-1}
+        prefix = 'SSA1D'
+        
+        # only look at SSA1D
+        print('-> Keys before cleanup:', df['prefix'].unique())
+        # remove unused data
+        df = df[df['prefix'].str.strip() =="SSA1D"]
+        print('-> Keys after cleanup:', df['prefix'].unique())
 
-# noise level, only use no noise cases
-print('-> Keys before cleanup: ', df['noise'].drop_duplicates())
-df = df[df['noise'].isin([[]])]
-print('-> Keys after cleanup:', df['noise'].drop_duplicates())
-
-dimensions = 1
-if dimensions == 2:
-    lossWeightDict = {'mse_u':0, 'mse_v':0, 'mse_H': 1, 'mse_s':1, 'mse_f1': 3, 'mse_f2': 3, 'test':-1}
-    prefix = 'SSA2D'
-else:
-    lossWeightDict = {'mse_u':0, 'mse_H': 1, 'mse_h':1, 'mse_f1': 3, 'test':-1}
-    prefix = 'SSA1D'
-
-    path = os.path.join("./matlab_SSA/DATA/Helheim_Weertman_iT080_PINN_flowline_CF_2dInv.mat")
-    x, Exact_vel, X_star, u_star, X_u_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu = prep_Helheim_data_flowline(path, 50, 100)
-    C_true = u_star[:,3:4]
-
-errorDict = getDataDict(df, wh=5, wf=[4,6,8,10,12,14,16], lossWeightDict=lossWeightDict, C_true=C_true)
+    # add columns for loading errors
+    numCol = df.shape[1]
+    df.insert(numCol, 'history length', 0) 
+    for k in lossWeightDict.keys():
+        df.insert(numCol, k, 0)   
+        df.insert(numCol, k+"mean10", 0)
+        df.insert(numCol, k+"10", 0)
+    
+    return df #}}}
 
