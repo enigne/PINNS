@@ -565,7 +565,7 @@ def prep_2D_data_all(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None, Fli
             X_ft = np.hstack((x_ft.flatten()[:,None], y_ft.flatten()[:,None]))
 
             N_H = min(X_ft.shape[0], N_H)
-            print(f"Use ${N_H} flight track data for the ice thickness training data")
+            print(f"Use {N_H} flight track data for the ice thickness training data")
             idx = np.random.choice(X_ft.shape[0], N_H, replace=False)
             X_train["H"] = np.vstack([X_bc, X_ft[idx, :]])
             u_train["H"] = np.vstack([u_bc[:, 3:4], H_ft[idx,:]])
