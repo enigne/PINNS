@@ -476,7 +476,7 @@ def prep_Helheim_transient(path, N_u=None, N_f=None): #{{{
     # X_bc, u_bc : boundary nodes
     # X_cf, n_cf : cavling front positions and normal vector
     return X_star, u_star, X_train, u_train, X_1d, C_1d, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu  #}}}
-def prep_2D_data_all(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None): #{{{
+def prep_2D_data_all(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None, FlightTrack=False): #{{{
     # Reading SSA ref solutions: x, y-coordinates, provide ALL the variables in u_train
     data = scipy.io.loadmat(path,  mat_dtype=True)
 
@@ -558,11 +558,24 @@ def prep_2D_data_all(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None): #{
 
     # ice thickness, or bed elevation
     if N_H:
-        idx = np.random.choice(X_.shape[0], N_H, replace=False)
-        X_train["H"] = X_[idx,:]
-        u_train["H"] = u_[idx, 3:4]
+        if FlightTrack:
+            H_ft = np.real(data['H_ft'].flatten()[:,None])
+            x_ft = np.real(data['x_ft'].flatten()[:,None])
+            y_ft = np.real(data['y_ft'].flatten()[:,None])
+            X_ft = np.hstack((x_ft.flatten()[:,None], y_ft.flatten()[:,None]))
+
+            N_H = min(X_ft.shape[0], N_H)
+            print(f"Use ${N_H} flight track data for the ice thickness training data")
+            idx = np.random.choice(X_ft.shape[0], N_H, replace=False)
+            X_train["H"] = np.vstack([X_bc, X_ft[idx, :]])
+            u_train["H"] = np.vstack([u_bc[:, 3:4], H_ft[idx,:]])
+        else:
+            idx = np.random.choice(X_.shape[0], N_H, replace=False)
+            X_train["H"] = X_[idx,:]
+            u_train["H"] = u_[idx, 3:4]
     else:
         if 'x_fl' in data.keys():
+            print('Warning, using flowlines, this should only be used for proof of concept')
             # load thickness along flowlines
             H_fl = np.real(data['H_fl'].flatten()[:,None])
             x_fl = np.real(data['x_fl'].flatten()[:,None])
