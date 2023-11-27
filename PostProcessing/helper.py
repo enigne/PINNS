@@ -272,3 +272,48 @@ def addErrors(df, N=100): #{{{
     df = upscaleByWeights(df, N=N)
 
     return df #}}}
+def visualizeErrors(df, variableWeights='wf', weights=None, features=['mse_u', 'mse_h', 'mse_H', 'mse_f1', 'test'] ): #{{{
+    # pick the intersetion of wf and the data in df
+    if not weights:
+        weights = np.sort(df[variableWeights].unique())
+    else:
+        weights = np.sort(list(set((df[variableWeights].unique()),).intersection(set(weights))))
+
+    # find the variable weights
+    uniWeights = [eval(w) for w in (df[df[variableWeights].isin(weights)].sort_values(variableWeights))['weights'].unique()]
+    # check if the size of the two groups are the same
+    assert(len(uniWeights) == len(weights))
+
+    # colors indicates different weights combinations
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+    lims = [[1e3, 1e8], [1e0, 1e6], [1e0, 1e6], [1e-1, 1e13], [1e4,1e7]]
+
+    Nkey = len(features)-1
+
+    # plot
+    fig, axs = plt.subplots(Nkey, Nkey, figsize=(20,16))
+
+    for cid, w in enumerate(weights):
+        err=df[df[variableWeights]==w]
+        label = '$'+ variableWeights + '=10^{-'+str(w)+'}$'
+
+        for i in range(Nkey):
+            for j in range(i,Nkey):
+                ax = axs[i][j]
+                ax.scatter(err[features[j+1]], err[features[i]], c=colors[cid], label=label, s=20)
+                ax.set_xscale('log')
+                ax.set_yscale('log')
+                ax.set_xlim(lims[j+1])
+                ax.set_ylim(lims[i])
+
+        # add labels
+        for i in range(len(features)-1):
+            ax = axs[i][0]
+            ax.set_ylabel(features[i])
+        for j in range(len(features)-1):
+            ax = axs[-1][j]
+            ax.set_xlabel(features[j+1])
+
+    ax.legend(bbox_to_anchor=(1.1, 1.5))
+
+    return weights, uniWeights #}}}
