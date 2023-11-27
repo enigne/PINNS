@@ -197,10 +197,10 @@ def findAllExps(projPath="./Models_Kubeflow/Models/", dimensions = 1): #{{{
 
     # 1D or 2D problem
     if dimensions == 2:
-        lossWeightDict = {'mse_u':0, 'mse_v':0, 'mse_H': 1, 'mse_s':1, 'mse_f1': 3, 'mse_f2': 3, 'test':-1}
+        lossWeightDict = {'mse_u':0, 'mse_v':0, 'mse_H': 1, 'mse_s':1, 'mse_f1': 3, 'mse_f2': 3, 'mse_fc1':4, 'mse_fc2':4, 'test':-1}
         prefix = 'SSA2D'
     else:
-        lossWeightDict = {'mse_u':0, 'mse_H': 1, 'mse_h':1, 'mse_f1': 3, 'test':-1}
+        lossWeightDict = {'mse_u':0, 'mse_H': 1, 'mse_h':1, 'mse_f1': 3, 'mse_fc1':4, 'test':-1}
         prefix = 'SSA1D'
 
         # only look at SSA1D
@@ -219,6 +219,26 @@ def findAllExps(projPath="./Models_Kubeflow/Models/", dimensions = 1): #{{{
         df[ k+"100"] = df[ k+"100"].astype(object)
 
     df.reset_index(inplace=True)
+    return df #}}}
+def upscaleByWeights(df, lossWeightDict={'mse_u':'wu', 'mse_H': 'wh', 'mse_h':'wh', 'mse_f1': 'wf', 'mse_fc1': 'wfc'}, N=100): #{{{
+    for k in lossWeightDict:
+        w = 10**(-df[lossWeightDict[k]])
+        df[k] = df[k]/w
+        newk = k + "mean" + str(N)
+        df[newk] = df[newk]/w
+    return df #}}}
+def scaleMseC(df, C_true=None): #{{{
+    # compute normalization for C
+    if C_true is None:
+        Cnorm = 1
+        NC = 1
+    else:
+        Cnorm = np.linalg.norm(C_true, 2)
+        NC = len(C_true)
+
+    df['test'] = (df['test']*Cnorm)**2/NC
+    df['testmean100'] = (df['testmean100']*Cnorm)**2/NC
+
     return df #}}}
 def addErrors(df, N=100): #{{{
     '''
@@ -247,5 +267,8 @@ def addErrors(df, N=100): #{{{
         if (k in df) and (refk in df) and (newk in df):
             df[k] = df[refk].apply(lambda x: x[-1] if isinstance(x, list) else 0)
             df[newk] = df[refk].apply(lambda x: np.mean(x))
+
+    # pre-processing
+    df = upscaleByWeights(df, N=N)
 
     return df #}}}
