@@ -222,10 +222,13 @@ def findAllExps(projPath="./Models_Kubeflow/Models/", dimensions = 1): #{{{
     return df #}}}
 def upscaleByWeights(df, lossWeightDict={'mse_u':'wu', 'mse_H': 'wh', 'mse_h':'wh', 'mse_f1': 'wf', 'mse_fc1': 'wfc'}, N=100): #{{{
     for k in lossWeightDict:
-        w = 10**(-df[lossWeightDict[k]])
-        df[k] = df[k]/w
-        newk = k + "mean" + str(N)
-        df[newk] = df[newk]/w
+        if lossWeightDict[k] in df:
+            w = 10**(-df[lossWeightDict[k]])
+            if k in df:
+                df[k] = df[k]/w
+            newk = k + "mean" + str(N)
+            if newk in df:
+                df[newk] = df[newk]/w
     return df #}}}
 def scaleMseC(df, C_true=None): #{{{
     # compute normalization for C
