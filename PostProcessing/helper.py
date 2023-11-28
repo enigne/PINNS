@@ -239,6 +239,8 @@ def scaleMseC(df, C_true=None): #{{{
         Cnorm = np.linalg.norm(C_true, 2)
         NC = len(C_true)
 
+    df['rel error'] = df['test']
+    df['abs error'] = df['test']*Cnorm/NC
     df['test'] = (df['test']*Cnorm)**2/NC
     df['testmean100'] = (df['testmean100']*Cnorm)**2/NC
 
