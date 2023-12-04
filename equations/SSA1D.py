@@ -344,13 +344,19 @@ class SSA1D_3NN_calvingfront_invertC(SSA1D): #{{{
         super().__init__(hp, logger, X_f, 
                 X_bc, u_bc, X_cf, n_cf,
                 xub, xlb, uub[0:1], ulb[0:1],
-                modelPath, reloadModel,
+                modelPath+"/model/", reloadModel,
                 mu, loss_weights=loss_weights)
-        # hp["h_layers"] defines h and H model
-        self.h_model = create_NN(hp["h_layers"], inputRange=(xlb, xub), outputRange=(ulb[1:3], uub[1:3]))
-
-        # hp["C_layers"] defines C model
-        self.C_model = create_NN(hp["C_layers"], inputRange=(xlb, xub), outputRange=(ulb[3:4], uub[3:4]))
+        # overwrite self.modelPath, which has been changed in super()
+        self.modelPath = modelPath
+        if reloadModel and os.path.exists(self.modelPath):
+            #load
+            self.h_model = tf.keras.models.load_model(modelPath+"/h_model/")
+            self.C_model = tf.keras.models.load_model(modelPath+"/C_model/")
+        else:
+            # hp["h_layers"] defines h and H model
+            self.h_model = create_NN(hp["h_layers"], inputRange=(xlb, xub), outputRange=(ulb[1:3], uub[1:3]))
+            # hp["C_layers"] defines C model
+            self.C_model = create_NN(hp["C_layers"], inputRange=(xlb, xub), outputRange=(ulb[3:4], uub[3:4]))
 
         self.trainableLayers = (self.model.layers[1:-1]) + (self.h_model.layers[1:-1]) + (self.C_model.layers[1:-1])
         self.trainableVariables = self.model.trainable_variables + self.h_model.trainable_variables + self.C_model.trainable_variables
