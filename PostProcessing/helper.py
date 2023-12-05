@@ -245,7 +245,7 @@ def scaleMseC(df, C_true=None): #{{{
     df['testmean100'] = (df['testmean100']*Cnorm)**2/NC
 
     return df #}}}
-def addErrors(df, N=100): #{{{
+def addErrors(df, projPath="./Models_Kubeflow/Models/", N=100): #{{{
     '''
     load history.json for each rows in the df and add errors to the corresponding columns
     '''
@@ -254,7 +254,7 @@ def addErrors(df, N=100): #{{{
         if i % 100 == 0:
             print(f"Loop over the whole dataframe: {i}/{df.shape[0]}")
         name = df.iloc[i]['Name']
-        data, errL = loadHistory(name, N=N)
+        data, errL = loadHistory(name, projPath=projPath, N=N)
         df.at[i, 'history length'] = errL
         # save the last N data to df
         for k in data.keys():
@@ -265,7 +265,7 @@ def addErrors(df, N=100): #{{{
 
     # get the last one and mean
     name = df.iloc[0]['Name']
-    data, errL = loadHistory(name, N=N)
+    data, errL = loadHistory(name, projPath=projPath, N=N)
     for k in data.keys():
         refk = k + str(N)
         newk = k + "mean" + str(N)
