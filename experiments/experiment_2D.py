@@ -557,6 +557,10 @@ def experiment_2D_3NN_test(weights, epochADAM=400000, epochLBFGS=0, N_u=2000, N_
         u_test = pinn.tensor(u_star[:,3:4])
         def error():
             return pinn.H_test_error(X_test, u_test)
+    elif not N_u:
+        u_test = pinn.tensor(u_star[:,0:2])
+        def error():
+            return pinn.u_test_error(X_test, u_test)
     else:
         print('Not implemented')
 
