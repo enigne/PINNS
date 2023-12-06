@@ -266,6 +266,14 @@ class SSA_3NN(NeuralNetwork): #{{{
         return u_pred.numpy(), v_pred.numpy(), s_pred.numpy(), H_pred.numpy(), C_pred.numpy()
 
     @tf.function
+    def u_test_error(self, X_test, u_test):
+        '''
+        test error of u and v
+        '''
+        sol_pred = self.model(X_test)
+        return  tf.math.reduce_euclidean_norm(tf.math.abs(sol_pred) - tf.math.abs(u_test)) / tf.math.reduce_euclidean_norm(u_test)
+
+    @tf.function
     def H_test_error(self, X_test, u_test):
         '''
         test error of H, second output from h_model
