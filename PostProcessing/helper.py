@@ -7,6 +7,10 @@ from utils import *
 from math import sqrt
 import matplotlib.pyplot as plt
 import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib as mpl
+from matplotlib.colors import ListedColormap
 
 def getListOfVaribles(x, keyword='weights', length=5): #{{{
     # find the index start with keyword
@@ -322,3 +326,12 @@ def visualizeErrors(df, variableWeights='wf', weights=None, features=['mse_u', '
     ax.legend(bbox_to_anchor=(1.1, 1.5))
 
     return weights, uniWeights #}}}
+def cmap_Rignot(): #{{{
+    # if we don't have a matching colormap, build one
+    alpha = 1
+    cmap = np.array((np.linspace(0, 1, 128, False), np.ones(128, ), np.ones(128, ))).T
+    cmap[:, 1] = np.maximum(np.minimum((0.1 + cmap[:, 0]**(1 / alpha)), 1), 0)
+    cmap = mpl.colors.hsv_to_rgb(cmap)
+    # construct a colormap object from an array of shape (n, 3 / 4)
+    cmap = ListedColormap(cmap)
+    return cmap#}}}
