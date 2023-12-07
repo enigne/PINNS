@@ -13,3 +13,10 @@ df = findAllExps(projPath=modelFolder, dimensions=2)
 data = addErrors(df, projPath=modelFolder)
 filename = "./Results/2Dresults.csv"
 data.to_csv(filename, index_label=False)
+
+# 1D 6x20
+modelFolder = 'Models_Kubeflow/1D/'
+df = findAllExps(projPath=modelFolder, dimensions=1)
+data = addErrors(df, projPath=modelFolder)
+filename = "./Results/1D_6x20_results.csv"
+data.to_csv(filename, index_label=False)
