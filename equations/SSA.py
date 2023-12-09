@@ -46,7 +46,7 @@ class SSA_3NN(NeuralNetwork): #{{{
 
         # overwrite self.modelPath, which has been changed in super()
         self.modelPath = modelPath
-        if reloadModel and os.path.exists(self.modelPath):
+        if reloadModel and os.path.exists(self.modelPath+"/h_model/") and os.path.exists(self.modelPath+"/C_model/"):
             #load
             self.h_model = tf.keras.models.load_model(modelPath+"/h_model/")
             self.C_model = tf.keras.models.load_model(modelPath+"/C_model/")
