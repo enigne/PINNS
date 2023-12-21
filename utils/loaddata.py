@@ -533,6 +533,15 @@ def prep_2D_data_all(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None, Fli
     X_ = np.vstack([X_star[iice[:,0],:]])
     u_ = np.vstack([u_star[iice[:,0],:]])
 
+    # calving front info
+    cx = data['cx'].flatten()[:,None]
+    cy = data['cy'].flatten()[:,None]
+    nx = data['smoothnx'].flatten()[:,None]
+    ny = data['smoothny'].flatten()[:,None]
+
+    X_cf = np.hstack((cx.flatten()[:,None], cy.flatten()[:,None]))
+    n_cf = np.hstack((nx.flatten()[:,None], ny.flatten()[:,None]))
+
     # Getting the corresponding X_train and u_train(which is now scarce boundary/initial coordinates)
     X_train = {}
     u_train = {}
@@ -546,6 +555,8 @@ def prep_2D_data_all(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None, Fli
     else:
         X_train["uv"] = X_bc
         u_train["uv"] = u_bc[:, 0:2]
+        # if solve for velocity, we need to set the ice front boundary to be collocation points as well
+        X_f = np.vstack((X_f,X_cf))
 
     # surface elevation, always available, use the maximum points among all the other data set
     if N_s is None:
@@ -597,14 +608,6 @@ def prep_2D_data_all(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None, Fli
         X_train["C"] = X_bc
         u_train["C"] = u_bc[:, 4:5]
 
-    # calving front info
-    cx = data['cx'].flatten()[:,None]
-    cy = data['cy'].flatten()[:,None]
-    nx = data['smoothnx'].flatten()[:,None]
-    ny = data['smoothny'].flatten()[:,None]
-
-    X_cf = np.hstack((cx.flatten()[:,None], cy.flatten()[:,None]))
-    n_cf = np.hstack((nx.flatten()[:,None], ny.flatten()[:,None]))
 
     return x, y, Exact_vx, Exact_vy, X_star, u_star, X_train, u_train, X_f, X_bc, u_bc, X_cf, n_cf, xub, xlb, uub, ulb, mu  #}}}
 def prep_2D_data_withmu(path, N_f=None, N_u=None, N_s=None, N_H=None, N_C=None, N_mu=None): #{{{
